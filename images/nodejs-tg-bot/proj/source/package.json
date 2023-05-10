@@ -1,0 +1,21 @@
+{
+    "name": "??",
+    "version": "0.0.0",
+    "description": "",
+
+    "scripts": {
+        "ci:build": "mkdir -p ./build && echo build ok! > ./build/build.log"
+    },
+
+    "dependencies": {
+
+    },
+
+    "peerDependencies": {
+
+    },
+
+    "devDependencies": {
+
+    }
+}
