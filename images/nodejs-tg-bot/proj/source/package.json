@@ -4,11 +4,11 @@
     "description": "",
 
     "scripts": {
-        "ci:build": "mkdir -p ./build && echo build ok! > ./build/build.log"
+        "ci:build": "mkdir -p ./build && cp my-server.js ./build/"
     },
 
     "dependencies": {
-
+        "fastify": "4.17.0"
     },
 
     "peerDependencies": {
