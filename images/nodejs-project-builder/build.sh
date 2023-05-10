@@ -15,8 +15,8 @@ printf "\ninstalling production depencencies..\n\n"
 npm install --omit=dev
 
 printf "\ncopying build files and dependencies..\n\n"
-cp -r ./node_modules /wordkir/destination
-cp -r ./build /workdir/destination
+cp -r ./node_modules /workdir/destination/
+cp -r ./build /workdir/destination/
 
 printf "\ncleanup..\n\n"
 rm -rf ./build
