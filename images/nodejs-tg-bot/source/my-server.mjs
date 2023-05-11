@@ -2,27 +2,26 @@ import fastify from 'fastify';
 
 
 export function makeServer({ logger = false }) {
-	const server = fastify({ logger });
-	
-	server.route({
-		method: 'GET',
-		url: '/',
+    const server = fastify({ logger });
 
-		handler: async(request, apply) => {
-			return { 
-				hello: 'world'
-			};
-		},
-	});
+    server.route({
+        method: 'GET',
+        url: '/',
 
+        handler: async (request, apply) => {
+            return {
+                hello: 'world'
+            };
+        },
+    });
 
-	return server;
+    return server;
 }
 
 export function makeAndRunServer({ host = 'localhost', port, logger = false }) {
-	const server = makeServer({ logger });
+    const server = makeServer({ logger });
 
-	server.listen({ host, port });
+    server.listen({ host, port });
 
-	return server;
+    return server;
 }
