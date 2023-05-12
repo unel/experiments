@@ -22,7 +22,7 @@ const pricesFor1KTokens = {
         usage: 0.0016,
     },
 
-    babbadge: {
+    babbage: {
         training: 0.0006,
         usage: 0.0024,
     },
@@ -40,7 +40,7 @@ const pricesFor1KTokens = {
 
 const fineTuningModels = new Set(['ada', 'babbadge', 'curie', 'davinci'])
 
-// works:
+// works: ada, babbage, curie, davinci, text-ada-001, text-babbage-001, text-curie-001, text-davinci-003, gpt2, gpt-3.5-turbo, gpt-4,
 export function getEncodingForModel(modelName) {
     try {
         return encoding_for_model(modelName);

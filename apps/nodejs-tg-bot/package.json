@@ -1,0 +1,37 @@
+{
+    "name": "chatgptbot",
+    "version": "0.0.0",
+    "description": "",
+
+    "scripts": {
+        "ci:clean-modules": "rm -rf ./node_modules ./package-lock.json",
+        "ci:clean-build": "rm -rf ./build",
+        "ci:clean": "npm run ci:clean-build && npm run ci:clean-modules",
+        "ci:build-project": "mkdir -p ./build && cp ./source/* ./build/",
+        "ci:dev-install": "npm install",
+        "ci:prod-install": "npm install --omit='dev'",
+
+        "ci:clean-dev-install": "npm run ci:clean-modules && npm run ci:dev-install",
+        "ci:clean-prod-install": "npm run ci:clean-modules && npm run ci:prod-install",
+
+        "ci:build-off": "npm run ci:clean && npm run ci:clean-dev-install && npm run ci:build-project && npm run ci:clean-prod-install",
+        "ci:build": "npm run ci:clean && npm run ci:prod-install && npm run ci:build-project"
+    },
+
+    "dependencies": {
+        "dotenv": "16.0.3",
+        "fastify": "4.17.0",
+
+        "openai":"3.2.1",
+        "telegraf": "4.12.2",
+        "@dqbd/tiktoken": "1.0.7"
+    },
+
+    "peerDependencies": {
+
+    },
+
+    "devDependencies": {
+
+    }
+}
