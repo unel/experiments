@@ -1,5 +1,5 @@
 {
-    "name": "chatgptbot",
+    "name": "unl-gpt-bot",
     "version": "0.0.0",
     "description": "",
 
@@ -20,11 +20,7 @@
 
     "dependencies": {
         "dotenv": "16.0.3",
-        "fastify": "4.17.0",
-
-        "openai":"3.2.1",
-        "telegraf": "4.12.2",
-        "@dqbd/tiktoken": "1.0.7"
+        "telegraf": "4.12.2"
     },
 
     "peerDependencies": {
