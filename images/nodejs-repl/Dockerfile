@@ -9,8 +9,8 @@ RUN apk add curl
 
 
 WORKDIR /root
-COPY ./.tmux.conf .
-COPY ./.tmuxinator.yml ./.config/tmuxinator/repl.yml
+COPY ./configs/tmux/.tmux.conf .
+COPY ./configs/tmux/.tmuxinator.yml ./.config/tmuxinator/repl.yml
 
 WORKDIR /workdir
 
