@@ -21,6 +21,7 @@ run node builded app image:
 ```bash
 docker run -it --rm --name tg-instance tg
 docker run -it --rm -p 8000:8000 --name ai ai
+docker run -d --name mongo-1 mongo
 ```
 
 build node + image:
@@ -28,4 +29,3 @@ build node + image:
 ./build.sh tg /workdir/iduno/apps/tg/
 ./build.sh ai /workdir/iduno/apps/openai/
 ```
-
