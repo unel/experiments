@@ -8,14 +8,14 @@ export const actions: Actions = {
         const { id, password } = formData;
         const { error, token } = await loginUser(id, password);
 
-        if (error) {
+        if (error || !token) {
             return fail(401, { error });
         }
 
-        event.cookies.set('AuthorizationToken', `Bearer ${token}`, {
+        event.cookies.set('AuthorizationToken', token, {
             httpOnly: true,
             path: '/',
-            secure: true,
+            secure: false,
             sameSite: 'strict',
             maxAge: 60 * 60 * 24
         });

@@ -3,12 +3,19 @@
 	import './styles.css';
 	import './primer.css';
 
-	let links = [
-		{ title: 'Login', path: '/login' },
+	export let data;
+
+	const authorizedLinks = [
 		{ title: 'Profile', path: '/profile' },
 		{ title: 'Api tests', path: '/api-tests' },
 		{ title: 'Chats', path: '/chats' },
 	];
+
+	const unauthorizedLinks = [
+		{ title: 'Login', path: '/login' },
+	];
+
+	const links = data.user ? authorizedLinks : unauthorizedLinks;
 </script>
 
 <header class="Header">

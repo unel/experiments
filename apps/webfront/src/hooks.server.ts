@@ -1,15 +1,13 @@
-import type { Handle } from '@sveltejs/kit';
+import { redirect, type Handle } from '@sveltejs/kit';
 import { JWT_ACCESS_SECRET } from '$env/static/private';
 import jwt from 'jsonwebtoken';
 
 import { db } from '$lib/db';
 
 const handle: Handle = async ({ event, resolve }) => {
-	const authCookie = event.cookies.get('AuthorizationToken');
+	const token = event.cookies.get('AuthorizationToken');
 
-	if (authCookie) {
-		const token = authCookie.split(' ')[1];
-
+	if (token) {
 		try {
 			const jwtUser = jwt.verify(token, JWT_ACCESS_SECRET);
 			if (typeof jwtUser === 'string') {
@@ -26,13 +24,22 @@ const handle: Handle = async ({ event, resolve }) => {
 				throw new Error('User not found');
 			}
 
-			event.locals.user = user;
+			event.locals.user = { id: user.id };
 		} catch (error) {
 			console.error(error);
 		}
 	}
 
-	return await resolve(event);
+	if (event.locals.user && event.route.id === '/login') {
+		// redirect to profile
+		throw redirect(303, '/profile');
+	}
+
+	if (!event.locals.user && event.route.id !== '/login') {
+		throw redirect(303, '/login');
+	}
+
+	return resolve(event);
 };
 
 export { handle };

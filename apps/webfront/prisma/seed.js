@@ -1,17 +1,16 @@
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client'
 
+const prisma = new PrismaClient();
 
 async function main() {
   const id = process.env.USER_ID;
   const password = process.env.USER_PASSWORD;
-  console.log('trying to create user', { id, password })
 
   if (!id || !password) {
     throw new Error('no data');
   }
 
-  const prisma = new PrismaClient();
   const me = await prisma.user.upsert({
     where: { id: 'unel' },
     update: {},
