@@ -1,5 +1,4 @@
 <style>
-
     .MainContent {
         height: 100%;
 
@@ -24,21 +23,32 @@
     }
 </style>
 
+<script lang="ts">
+    import type { ActionData } from './$types';
+    import { enhance } from '$app/forms';
 
+    export let form: ActionData;
+</script>
 
 <main class="MainContent">
-    <form class="LoginForm" method="POST" action="/login">
+    <form class="LoginForm" method="POST" action="/login" use:enhance>
         <section class="Subhead">
             <h2 class="Subhead-heading">Login</h2>
         </section>
 
         <section class="form-group">
-            <input class="form-control" type="text" name="ID" placeholder="fill your id">
+            <input class="form-control" type="text" name="id" placeholder="fill your id">
         </section>
 
         <section class="form-group">
-            <input class="form-control" type="password" name="ID" placeholder="fill your password">
+            <input class="form-control" type="password" name="password" placeholder="fill your password">
         </section>
+
+        {#if form?.error}
+            <section class="form-group flash flash-error">
+                {form.error}
+            </section>
+        {/if}
 
         <section class="form-actions">
             <button class="btn btn-primary" type="submit">send</button>
