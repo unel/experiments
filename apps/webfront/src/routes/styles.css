@@ -4,10 +4,6 @@ html, body {
     height: 100%;
 }
 
-body:first-child {
-    height: 100%;
-}
-
 
 :root {
     --base-space-size: 8px;
