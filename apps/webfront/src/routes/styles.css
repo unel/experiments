@@ -1,0 +1,19 @@
+html, body {
+    padding: 0;
+    margin: 0;
+    height: 100%;
+}
+
+body:first-child {
+    height: 100%;
+}
+
+
+:root {
+    --base-space-size: 8px;
+
+    --space-sm: var(--base-space-size);
+    --space: calc(2 * var(--base-space-size));
+    --space-mid: calc(3 * var(--base-space-size));
+    --space-large: calc(4 * var(--base-space-size));
+}
