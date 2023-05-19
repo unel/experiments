@@ -8,7 +8,7 @@ async function main() {
   const password = process.env.USER_PASSWORD;
 
   if (!id || !password) {
-    throw new Error('no data');
+    throw new Error('no env data (USER_ID, USER_PASSWORD)');
   }
 
   const me = await prisma.user.upsert({

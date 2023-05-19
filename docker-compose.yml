@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  dispatcher:
+    image: 'nginx:1.23.4-alpine'
+
+    command: [nginx-debug, '-g', 'daemon off;']
+    working_dir: /app
+    volumes:
+      - /workdir/iduno/apps/dispatcher/config:/etc/nginx/
+      - /workdir/iduno/apps/dispatcher/static:/usr/share/nginx/html
+
+    environment:
+      - NGINX_PORT=8000
+
+    networks:
+      - nginx
+      - node-mongo
+
+    ports:
+      - '80:8000'
+
+    expose:
+      - '80'
+
+
+  webfront:
+    image: 'node:20.2.0-alpine3.17'
+
+    entrypoint: npm run dev -- --host --port=8080
+    working_dir: /app
+    volumes:
+      - /workdir/iduno/apps/webfront:/app
+
+    networks:
+      - node-mongo
+
+    ports:
+      - '8080:8080'
+
+    expose:
+      - '8080'
+
+  mongo-server:
+    image: 'mongo:6.0.5'
+
+    entrypoint: docker-entrypoint.sh mongod --replSet rs0 --keyFile=/data/keyfiles/mongokey
+    # command: mongod --replSet rs0
+
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+    volumes:
+      - /workdir/keyfiles/mongo:/data/keyfiles/
+      - /workdir/backups/mongo:/data/backups/
+
+    networks:
+      - node-mongo
+
+    ports:
+      - '27017:27017'
+
+    expose:
+      - '27017'
+
+
+networks:
+  node-mongo: {}
+  nginx: {}

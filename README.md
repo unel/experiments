@@ -39,3 +39,9 @@ run watching application
 ```
 docker run --rm -it --name wf -v /workdir/iduno/apps/webfront:/app -w /app --network=host --entrypoint="npm"  node:20.2.0-alpine3.17 run dev -- --host --port=80
 ```
+
+
+run this all
+```bash
+docker compose up
+```
