@@ -1,4 +1,5 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit';
+
 import { JWT_ACCESS_SECRET } from '$env/static/private';
 import jwt from 'jsonwebtoken';
 
@@ -28,15 +29,6 @@ const handle: Handle = async ({ event, resolve }) => {
 		} catch (error) {
 			console.error(error);
 		}
-	}
-
-	if (event.locals.user && event.route.id === '/login') {
-		// redirect to profile
-		throw redirect(303, '/profile');
-	}
-
-	if (!event.locals.user && event.route.id !== '/login') {
-		throw redirect(303, '/login');
 	}
 
 	return resolve(event);

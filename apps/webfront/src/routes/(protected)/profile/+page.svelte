@@ -4,7 +4,7 @@
 
 <main class="MainContent">
 	<header>
-		<h1>Profile page // {data.user.id}</h1>
+		<h1>Profile page // {data.user?.id}</h1>
 	</header>
 
 	just kidding

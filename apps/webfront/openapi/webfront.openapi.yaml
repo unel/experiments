@@ -1,0 +1,121 @@
+openapi: 3.0.3
+
+info:
+  title: my basic api
+  description: |-
+    this some description written in *markdown* (i hope)
+
+    Some useful links:
+    - [link1](https://url1)
+    - [link2](https://url2)
+
+  version: 0.0.1
+
+servers:
+  - url: http://68.183.70.172/
+
+tags:
+  - name: auth
+    description: All about user auth
+
+  - name: user
+    description: Operations about user
+
+paths:
+  /api/user:
+    get:
+      tags:
+        - auth
+
+      security:
+        - cookieAuth: []
+
+      responses:
+        '200':
+          description: current user info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/MaybeUser'
+
+  /login:
+    post:
+      tags:
+        - auth
+
+      requestBody:
+        description: data required for authentication
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginCredentials'
+
+      responses:
+        '302':
+          description: Successful login redirect
+          headers:
+            set-cookie:
+              description: auth token cookie
+              schema:
+                type: string
+                pattern: 'AuthorizationToken=\w+; Max-Age=\d+; Path=\w+; HttpOnly; SameSite=Strict'
+                example: '^AuthorizationToken=xxxTOKENxxx; Max-Age=86400; Path=/; HttpOnly; SameSite=Strict$'
+            location:
+              description: redirect location
+              schema:
+                type: string
+                format: uri
+                example: '/profile'
+
+        '401':
+          description: Forbidden
+
+        '403':
+          description: Forbidden
+
+        '500':
+          description: Everything go wrong
+
+components:
+  securitySchemes:
+    cookieAuth:         # arbitrary name for the security scheme; will be used in the "security" key later
+      type: apiKey
+      in: cookie
+      name: AuthorizationToken  # cookie name
+
+  schemas:
+    MaybeUser:
+      nullable: true
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'root'
+      required:
+        - id
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'root'
+      required:
+        - id
+
+    LoginCredentials:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'root'
+        password:
+          type: string
+          example: 'pass'
+      required:
+        - id
+        - password
