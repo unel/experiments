@@ -6,7 +6,7 @@
 </script>
 
 <main class="MainContent">
-	<form class="LoginForm" method="POST" action="/login" use:enhance>
+	<form class="LoginForm" method="POST" use:enhance>
 		<section class="Subhead">
 			<h2 class="Subhead-heading">Login</h2>
 		</section>
