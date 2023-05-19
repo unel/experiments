@@ -30,6 +30,11 @@ docker run -it --rm -p 8000:8000 --name ai ai
 docker run -d --name mongo-1 mongo
 ```
 
+run docker db
+```
+docker run -d --name mongo-server -p 27017:27017 -v /workdir/backups/mongo:/data/backups/ -v /workdir/keyfiles/mongo:/data/keyfiles/ -e MONGO_INITDB_ROOT_USERNAME= -e MONGO_INITDB_ROOT_PASSWORD= mongo --replSet rs0 --keyFile=/data/keyfiles/mongokey
+```
+
 run watching application
 ```
 docker run --rm -it --name wf -v /workdir/iduno/apps/webfront:/app -w /app --network=host --entrypoint="npm"  node:20.2.0-alpine3.17 run dev -- --host --port=80
