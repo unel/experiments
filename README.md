@@ -1,4 +1,4 @@
-# some experiments hype technologies
+# some experiments with hype technologies
 
 This is a research project to combine docker, node, mongo, chatGPT, telegram bot and TTS / STT services
 
