@@ -40,8 +40,9 @@ run watching application
 docker run --rm -it --name wf -v /workdir/iduno/apps/webfront:/app -w /app --network=host --entrypoint="npm"  node:20.2.0-alpine3.17 run dev -- --host --port=80
 ```
 
-
-run this all
+some warmup:
 ```bash
 docker compose up
+docker exec experiments-mongo-server-1 mongosh -u ${MONGO_INITIAL_USERNAME} -p ${MONGO_INITIAL_PASSWORD} --port ${MONGO_PORT} --eval 'rs.initiate()'
+docker exec experiments-webfront-1 npx prisma db seed
 ```
