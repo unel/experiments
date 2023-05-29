@@ -8,17 +8,23 @@ services:
     volumes:
       - ${APPS_DIR}/dispatcher/config/templates:/etc/nginx/templates
       - ${APPS_DIR}/dispatcher/static:/usr/share/nginx/html
+      - ${KEYS_DIR}/dispatcher/ssl/certs:/etc/ssl/certs
+      - ${KEYS_DIR}/dispatcher/ssl/private:/etc/ssl/private
+      - ${KEYS_DIR}/dispatcher/dh:/etc/nginx/dh
 
     environment:
-      - NGINX_PORT=8000
+      - NGINX_PORT=443
       - NODE_PORT=${NODE_PORT}
+      - SSL_CERT_PATH=/etc/ssl/certs/nginx-selfsigned.crt
+      - SSL_KEY_PATH=/etc/ssl/private/nginx-selfsigned.key
+      - DHPARAM_PATH=/etc/nginx/dh/nginx-dhparam.pem
 
     networks:
       - nginx
       - node-mongo
 
     ports:
-      - '80:8000'
+      - '443:443'
 
   webfront:
     image: 'node:20.2.0-alpine3.17'
