@@ -57,8 +57,9 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITIAL_PASSWORD}
 
     volumes:
-      - ${WORK_DIR}/keyfiles/mongo:/data/keyfiles/
-      - ${WORK_DIR}/backups/mongo:/data/backups/
+      - ${KEYS_DIR}/mongo:/data/keyfiles/
+      - ${BACKUPS_DIR}/mongo:/data/backups/
+      - ${DATA_DIR}/mongo:/data/db
 
     networks:
       - node-mongo
