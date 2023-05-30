@@ -27,8 +27,7 @@ services:
       - DHPARAM_PATH=/etc/nginx/dh/nginx-dhparam.pem
 
     networks:
-      - nginx
-      - node-mongo
+      - dispatcher
 
     ports:
       - '443:443'
@@ -57,6 +56,7 @@ services:
       - USER_PASSWORD=${SYSTEM_INITIAL_PASSWORD}
 
     networks:
+      - dispatcher
       - node-mongo
 
     # ports:
@@ -110,12 +110,12 @@ services:
       - ME_CONFIG_MONGODB_SERVER=mongo-server
 
     networks:
+      - dispatcher
       - node-mongo
-      - nginx
 
     # ports:
     #   - '${MONGO_ADMIN_PORT}:8081'
 
 networks:
   node-mongo: {}
-  nginx: {}
+  dispatcher: {}
