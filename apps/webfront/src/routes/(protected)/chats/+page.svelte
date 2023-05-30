@@ -1,71 +1,123 @@
 <script lang="ts">
-	import { initSpeechRecognition } from "$lib/stt";
+	import { isSpeechRecognitionAvailable, initSpeechRecognition, makeSpeechRecognitionStructure, type SRStructure } from "$lib/stt";
 
-	let transcripts: string[] = [];
-	let isListening = false;
+	let languages = ['en', 'ru', 'fr', 'ge'];
+	let activeLanguage: string = languages[0] || 'en';
+	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
 
-	const srg = initSpeechRecognition({
-		lang: 'en',
-		continuous: true,
-		listen: {
-			'start': () => {
-				isListening = true;
-			},
 
-			'error': (e) => {
-				console.warn('speech listening error', e);
-			},
+	let speechRecognisersList: Array<SRStructure> = []
+	let speechRecognisersMap: Record<string, SRStructure> = {};
 
-			'result': (e) => {
-				const data = (e as SpeechRecognitionEvent);
-				const item = data.results[data.resultIndex].item(0);
+	function initSpeechRecognisers() {
+		for (const language of languages) {
+			const structure = makeSpeechRecognitionStructure({
+				language,
+				continuous: true,
+				listener: () => {
+					triggerUpdates();
+				},
+			})
 
-				transcripts.push(item.transcript);
-				transcripts = transcripts;
-			},
+			speechRecognisersList.push(structure);
+			speechRecognisersMap[language] = structure;
+		}
+	}
 
-			'end': () => {
-				isListening = false;
-			},
-		},
-	});
+	if (speechRecognitionAvailable) {
+		initSpeechRecognisers();
+	}
+
+	$: activeRecogniserStructure = speechRecognisersMap[activeLanguage];
+	$: isListening = activeRecogniserStructure?.state.isListening || false;
+	$: log = activeRecogniserStructure?.state.log || [];
 
 	function startListening() {
-		srg?.start();
+		activeRecogniserStructure?.speechRecogniser.start();
 	}
 
 	function stopListening() {
-		srg?.stop();
+		activeRecogniserStructure?.speechRecogniser.stop();
 	}
 
 	function clearHistory() {
-		transcripts = [];
+		if (activeRecogniserStructure) {
+			activeRecogniserStructure.state.log = [];
+			triggerUpdates();
+		}
+	}
+
+	function removeTranscript(idx: number) {
+		if (activeRecogniserStructure) {
+			activeRecogniserStructure.state.log.splice(idx, 1);
+			triggerUpdates();
+		}
+	}
+
+	function selectLanguage(language: string): void {
+		if (isListening) {
+			activeRecogniserStructure.speechRecogniser.stop();
+			speechRecognisersMap[language]?.speechRecogniser.start();
+		}
+
+		activeLanguage = language;
+	}
+
+	function triggerUpdates() {
+		speechRecognisersList = speechRecognisersList;
+		speechRecognisersMap = speechRecognisersMap;
 	}
 </script>
 
 <main class="MainContent">
-	<header>
-		<h1>Chats</h1>
+	<header class="Subhead">
+		<h1 class="Subhead-heading">Chats</h1>
 
-		<button on:click={startListening}>
-			listen me
-		</button>
+		<div class="Subhead-actions">
+			<div class="BtnGroup">
+				{#each languages as language}
+					<button class="BtnGroup-item btn" aria-selected={language === activeLanguage} on:click={() => selectLanguage(language)}>
+						{language}
+					</button>
+				{/each}
+			</div>
 
-		<button on:click={stopListening}>
-			stop this
-		</button>
+			<button class="btn" on:click={startListening} disabled={isListening}>
+				listen me
+			</button>
+
+			<button class="btn" on:click={stopListening} disabled={!isListening}>
+				stop this
+			</button>
 
 
-		<button on:click={clearHistory}>
-			clear
-		</button>
+			<button class="btn" on:click={clearHistory} disabled={!log.length}>
+				clear
+			</button>
 
-		[status: {isListening ? 'listen' : 'deaf'}]
+			<span class="State">[{activeLanguage} / {isListening ? 'listen' : 'deaf'}]</span>
+		</div>
+
+
 	</header>
 
-	<section>
-		{#each transcripts as transcript}
-			<p>{transcript}</p>
+	<section class="transcripts">
+		{#each log as logEntry, idx}
+			<div class="transcript">
+				<div class="transcript-number">
+					# {idx + 1} ({logEntry.datetime})
+				</div>
+
+				<div class="transcript-text">
+					[{logEntry.language}]: {logEntry.text}
+				</div>
+
+				<div class="transcript-controls">
+					<button class="btn" on:click={() => removeTranscript(idx)}>
+						delete
+					</button>
+				</div>
+			</div>
 		{/each}
 	</section>
 </main>
@@ -81,5 +133,21 @@
 
 		padding-left: var(--space-large);
 		padding-right: var(--space-large);
+	}
+
+	.transcripts {
+		display: flex;
+		flex-direction: column;
+		row-gap: var(--space-mid);
+	}
+
+	.transcript {
+		border: 1px solid gray;
+		padding: var(--space);
+
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		column-gap: var(--space)
 	}
 </style>
