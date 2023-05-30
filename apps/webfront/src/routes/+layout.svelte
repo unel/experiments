@@ -8,7 +8,8 @@
 	const authorizedLinks = [
 		{ title: 'Profile', path: '/profile' },
 		{ title: 'Api tests', path: '/api-tests' },
-		{ title: 'Chats', path: '/chats' }
+		{ title: 'Chats', path: '/chats' },
+		{ title: 'Admin::mongo', path: '/admin/mongo' },
 	];
 
 	const unauthorizedLinks = [{ title: 'Login', path: '/login' }];

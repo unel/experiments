@@ -3,6 +3,10 @@ services:
   dispatcher:
     image: 'nginx:1.23.4-alpine'
 
+    depends_on:
+      - webfront
+      - mongo-admin
+
     command: [nginx-debug, '-g', 'daemon off;']
     working_dir: /app
     volumes:
@@ -15,6 +19,8 @@ services:
     environment:
       - NGINX_PORT=443
       - NODE_PORT=${NODE_PORT}
+      - MONGO_ADMIN_PORT=${MONGO_ADMIN_PORT}
+      - MONGO_ADMIN_BASEPATH=${MONGO_ADMIN_BASEPATH}
       - NODE_DEV_PORT=${NODE_DEV_PORT}
       - SSL_CERT_PATH=/etc/ssl/certs/nginx-selfsigned.crt
       - SSL_KEY_PATH=/etc/ssl/private/nginx-selfsigned.key
@@ -30,6 +36,9 @@ services:
 
   webfront:
     image: 'node:20.2.0-alpine3.17'
+
+    depends_on:
+      - mongo-admin
 
     entrypoint: npm run dev -- --host --port=${NODE_PORT}
     working_dir: /app
@@ -50,9 +59,9 @@ services:
     networks:
       - node-mongo
 
-    ports:
-      - '${NODE_PORT}:${NODE_PORT}'
-      - '${NODE_DEV_PORT}:${NODE_DEV_PORT}'
+    # ports:
+    #   - '${NODE_PORT}:${NODE_PORT}'
+    #   - '${NODE_DEV_PORT}:${NODE_DEV_PORT}'
 
   mongo-server:
     image: 'mongo:6.0.5'
@@ -66,13 +75,46 @@ services:
     volumes:
       - ${KEYS_DIR}/mongo:/data/keyfiles/
       - ${BACKUPS_DIR}/mongo:/data/backups/
-      - ${DATA_DIR}/mongo:/data/db
+      # - ${DATA_DIR}/mongo:/data/db
 
     networks:
       - node-mongo
 
-    ports:
-      - '${MONGO_PORT}:${MONGO_PORT}'
+    # ports:
+    #   - '${MONGO_PORT}:${MONGO_PORT}'
+
+    healthcheck:
+      test: mongosh --port ${MONGO_PORT} --quiet --eval 'db.runCommand("ping").ok'
+      interval: 10s
+      timeout: 2s
+      retries: 5
+      start_period: 0s
+
+  mongo-admin:
+    image: 'mongo-express:1.0.0-alpha.4'
+
+    depends_on:
+      mongo-server:
+        condition: service_healthy
+        # condition: service_started
+        restart: true
+
+    environment:
+      - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_INITIAL_USERNAME}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_INITIAL_PASSWORD}
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_INITIAL_USERNAME}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_INITIAL_PASSWORD}
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_PORT=${MONGO_PORT}
+      - ME_CONFIG_SITE_BASEURL=${MONGO_ADMIN_BASEPATH}
+      - ME_CONFIG_MONGODB_SERVER=mongo-server
+
+    networks:
+      - node-mongo
+      - nginx
+
+    # ports:
+    #   - '${MONGO_ADMIN_PORT}:8081'
 
 networks:
   node-mongo: {}

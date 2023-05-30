@@ -55,6 +55,9 @@ MONGO_PORT=7777
 MONGO_INITIAL_USERNAME=some_user_for_mongo_admin
 MONGO_INITIAL_PASSWORD=some_password_for_mongo_admin
 
+MONGO_ADMIN_PORT=8081
+MONGO_ADMIN_BASEPATH=/admin/mongo
+
 SYSTEM_INITIAL_USERNAME=some_user_id_for_site
 SYSTEM_INITIAL_PASSWORD=some_user_password_for_site
 ```
@@ -96,5 +99,6 @@ sudo openssl dhparam -out /workdir/keys/dispatcher/dh/nginx-dhparam.pem 4096
 docker compose up
 
 docker exec experiments-mongo-server-1 mongosh -u ${MONGO_INITIAL_USERNAME} -p ${MONGO_INITIAL_PASSWORD} --port ${MONGO_PORT} --eval 'rs.initiate()'
+docker exec experiments-mongo-server-1 mongosh -u ${MONGO_INITIAL_USERNAME} -p ${MONGO_INITIAL_PASSWORD} --port ${MONGO_PORT} --eval 'db.getMongo().setReadPref("primaryPreferred")'
 docker exec experiments-webfront-1 npx prisma db seed
 ```
