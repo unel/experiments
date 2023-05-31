@@ -34,11 +34,21 @@ server {
         proxy_set_header Connection "upgrade";
     }
 
+    location ${CHAT_API_BASEPATH}/ {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+
+        proxy_pass http://chat-api:${CHAT_API_NODE_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
     location  / {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
 
-        proxy_pass http://webfront:${NODE_PORT};
+        proxy_pass http://webfront:${WEBFRONT_NODE_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -46,7 +56,7 @@ server {
 }
 
 server {
-    server_name chatgptdev.unl;
+    server_name experiments-dev.unl;
 
     listen 444 ssl;
     ssl_certificate ${SSL_CERT_PATH};
@@ -74,7 +84,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
 
-        proxy_pass http://webfront:${NODE_DEV_PORT};
+        proxy_pass http://webfront:${WEBFRONT_DEV_NODE_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

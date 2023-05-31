@@ -5,6 +5,7 @@ services:
 
     depends_on:
       - webfront
+      - chat-api
       - mongo-admin
 
     command: [nginx-debug, '-g', 'daemon off;']
@@ -18,13 +19,18 @@ services:
 
     environment:
       - NGINX_PORT=443
-      - NODE_PORT=${NODE_PORT}
-      - MONGO_ADMIN_PORT=${MONGO_ADMIN_PORT}
-      - MONGO_ADMIN_BASEPATH=${MONGO_ADMIN_BASEPATH}
-      - NODE_DEV_PORT=${NODE_DEV_PORT}
       - SSL_CERT_PATH=/etc/ssl/certs/nginx-selfsigned.crt
       - SSL_KEY_PATH=/etc/ssl/private/nginx-selfsigned.key
       - DHPARAM_PATH=/etc/nginx/dh/nginx-dhparam.pem
+
+      - WEBFRONT_NODE_PORT=${WEBFRONT_NODE_PORT}
+      - WEBFRONT_DEV_NODE_PORT=${WEBFRONT_DEV_NODE_PORT}
+
+      - CHAT_API_NODE_PORT=${CHAT_API_NODE_PORT}
+      - CHAT_API_BASEPATH=${CHAT_API_BASEPATH}
+
+      - MONGO_ADMIN_PORT=${MONGO_ADMIN_PORT}
+      - MONGO_ADMIN_BASEPATH=${MONGO_ADMIN_BASEPATH}
 
     networks:
       - dispatcher
@@ -37,31 +43,59 @@ services:
     image: 'node:20.2.0-alpine3.17'
 
     depends_on:
-      - mongo-admin
+      mongo-server:
+        condition: service_healthy
+        restart: true
 
-    entrypoint: npm run dev -- --host --port=${NODE_PORT}
+    entrypoint: npm run dev -- --host --port=${WEBFRONT_NODE_PORT}
     working_dir: /app
     volumes:
       - ${APPS_DIR}/webfront:/app
 
     environment:
-      - NODE_DEV_PORT=${NODE_DEV_PORT}
+      - NODE_PORT=${WEBFRONT_NODE_PORT}
+      - DEV_NODE_PORT=${WEBFRONT_DEV_NODE_PORT}
+
       - PROTOCOL_HEADER=x-forwarded-proto
       - HOST_HEADER=x-forwarded-host
       - ORIGIN=${SITE_ORIGIN}
+
+      - USER_ID=${WEBFRONT_INITIAL_USERNAME}
+      - USER_PASSWORD=${WEBFRONT_INITIAL_PASSWORD}
+
       - MONGO_PORT=${MONGO_PORT}
       - MONGO_USERNAME=${MONGO_INITIAL_USERNAME}
       - MONGO_PASSWORD=${MONGO_INITIAL_PASSWORD}
-      - USER_ID=${SYSTEM_INITIAL_USERNAME}
-      - USER_PASSWORD=${SYSTEM_INITIAL_PASSWORD}
 
     networks:
       - dispatcher
       - node-mongo
 
     # ports:
-    #   - '${NODE_PORT}:${NODE_PORT}'
-    #   - '${NODE_DEV_PORT}:${NODE_DEV_PORT}'
+    #   - '${WEBFRONT_NODE_PORT}:${WEBFRONT_NODE_PORT}'
+    #   - '${WEBFRONT_DEV_NODE_PORT}:${WEBFRONT_DEV_NODE_PORT}'
+
+  chat-api:
+    image: 'node:20.2.0-alpine3.17'
+
+    depends_on:
+      mongo-server:
+        condition: service_healthy
+        restart: true
+
+    entrypoint: npm run dev -- --host --port=${CHAT_API_NODE_PORT}
+    working_dir: /app
+    volumes:
+      - ${APPS_DIR}/chatapi:/app
+
+    environment:
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_USERNAME=${MONGO_INITIAL_USERNAME}
+      - MONGO_PASSWORD=${MONGO_INITIAL_PASSWORD}
+
+    networks:
+      - dispatcher
+      - node-mongo
 
   mongo-server:
     image: 'mongo:6.0.5'
