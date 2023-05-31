@@ -102,3 +102,24 @@ docker exec experiments-mongo-server-1 mongosh -u ${MONGO_INITIAL_USERNAME} -p $
 docker exec experiments-mongo-server-1 mongosh -u ${MONGO_INITIAL_USERNAME} -p ${MONGO_INITIAL_PASSWORD} --port ${MONGO_PORT} --eval 'db.getMongo().setReadPref("primaryPreferred")'
 docker exec experiments-webfront-1 npx prisma db seed
 ```
+
+backup / restore:
+(!) insecure variants (!) :: password in command -> password in ps output & history -> pasword can be leaked
+
+```bash
+docker exec experiments-mongo-server-1 mongodump --port ${MONGO_PORT} -u ${MONGO_INITIAL_USERNAME} -p {MONGO_INITIAL_PASSWORD} --archive > /workdir/backups/mongo/mongodump.archive
+
+docker exec -i experiments-mongo-server-1 mongorestore -verbose --port ${MONGO_PORT} -u ${MONGO_INITIAL_USERNAME} -p {MONGO_INITIAL_PASSWORD} --archive < /workdir/backups/mongo/mongodump.archive
+```
+
+
+more secure variants:
+```bash
+docker exec experiments-mongo-server-1 mongodump --config /data/keyfiles/config.yaml --archive > /workdir/backups/mongo/mongodump.archive
+docker exec -i experiments-mongo-server-1 mongorestore --verbose --config /data/keyfiles/config.yaml --archive < /workdir/backups/mongo/mongodump.archive
+```
+
+in this case, in container should be exists `config.yaml` with this content (replace variables to concrete values):
+```yaml
+uri: mongodb://${MONGO_INITIAL_USERNAME}:${MONGO_INITIAL_PASSWORD}@localhost:${MONGO_PORT}
+```
