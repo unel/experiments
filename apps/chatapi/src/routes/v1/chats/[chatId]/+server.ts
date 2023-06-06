@@ -8,8 +8,12 @@ export async function GET({ params }) {
     try {
         const chat = await db.chat.findUniqueOrThrow({
             where: {
-                id: params.id
-            }
+                id: params.chatId
+            },
+
+            include: {
+                messages: true,
+            },
         });
 
         return json(chat);
@@ -30,7 +34,7 @@ export async function POST({ params, request }) {
     try {
         const chat = await db.chat.update({
             where: {
-                id: params.id
+                id: params.chatId
             },
             data: updates,
         });
@@ -46,7 +50,7 @@ export async function DELETE({ params }) {
     try {
         await db.chat.delete({
             where: {
-              id: params.id,
+              id: params.chatId,
             },
         });
 
