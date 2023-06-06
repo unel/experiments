@@ -1,5 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma  } from '@prisma/client';
 
 const db = new PrismaClient();
 
-export { db };
+const Error = {
+    KnownRequestError: Prisma.PrismaClientKnownRequestError,
+}
+
+export { db, Error };
