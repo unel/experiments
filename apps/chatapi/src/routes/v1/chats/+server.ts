@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 
 import { db } from '$lib/db';
 
-export async function GET({ request, url }) {
+export async function GET({ url }) {
     const userId = url.searchParams.get('userId');
     const query = userId ? { userId } : {}
     const chats = await db.chat.findMany({
