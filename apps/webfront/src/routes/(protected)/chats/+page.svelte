@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { isSpeechRecognitionAvailable, initSpeechRecognition, makeSpeechRecognitionStructure, type SRStructure } from "$lib/stt";
 
+	export let data;
+
 	let languages = ['en', 'ru', 'fr', 'ge'];
 	let activeLanguage: string = languages[0] || 'en';
 	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
@@ -71,7 +73,7 @@
 
 <main class="MainContent">
 	<header class="Subhead">
-		<h1 class="Subhead-heading">Chats</h1>
+		<h1 class="Subhead-heading">Chats { data.chats.length }</h1>
 
 		<div class="Subhead-actions">
 			<div class="BtnGroup">
