@@ -1,3 +1,5 @@
+import path from "path";
+
 import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/kit/vite';
 
@@ -14,6 +16,10 @@ const config = {
 		adapter: adapter(),
 		csrf: {
 			checkOrigin: false,
+		},
+
+		alias: {
+			'@components/*': path.resolve('./src/lib/components/*'),
 		}
 	}
 };

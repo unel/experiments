@@ -1,74 +1,44 @@
 <script lang="ts">
-	import { isSpeechRecognitionAvailable, initSpeechRecognition, makeSpeechRecognitionStructure, type SRStructure } from "$lib/stt";
+	// imports
+	import { SR, isSpeechRecognitionAvailable } from "$lib/stt";
+	import Listener from '@components/Listener.svelte';
+	// ------------------------------------
 
+
+	// page data (see +page.server.ts@load)
 	export let data;
+	// ------------------------------------
 
-	let languages = ['en', 'ru', 'fr', 'ge'];
-	let activeLanguage: string = languages[0] || 'en';
-	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
+
+	// page logic
 	const dtFormatter = new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'medium' });
 
-	let speechRecognisersList: Array<SRStructure> = []
-	let speechRecognisersMap: Record<string, SRStructure> = {};
+	let log = [];
+	function updateLog(e) {
+		console.log('updating log', e);
 
-	function initSpeechRecognisers() {
-		for (const language of languages) {
-			const structure = makeSpeechRecognitionStructure({
-				language,
-				continuous: true,
-				listener: () => {
-					triggerUpdates();
-				},
-			})
-
-			speechRecognisersList.push(structure);
-			speechRecognisersMap[language] = structure;
-		}
-	}
-
-	if (speechRecognitionAvailable) {
-		initSpeechRecognisers();
-	}
-
-	$: activeRecogniserStructure = speechRecognisersMap[activeLanguage];
-	$: isListening = activeRecogniserStructure?.state.isListening || false;
-	$: log = activeRecogniserStructure?.state.log || [];
-
-	function startListening() {
-		activeRecogniserStructure?.speechRecogniser.start();
-	}
-
-	function stopListening() {
-		activeRecogniserStructure?.speechRecogniser.stop();
-	}
-
-	function clearHistory() {
-		if (activeRecogniserStructure) {
-			activeRecogniserStructure.state.log = [];
-			triggerUpdates();
-		}
+		log.push({
+			datetime: Date.now(),
+			text: e.detail.transcript,
+		});
+		log = log;
 	}
 
 	function removeTranscript(idx: number) {
-		if (activeRecogniserStructure) {
-			activeRecogniserStructure.state.log.splice(idx, 1);
-			triggerUpdates();
+		log.splice(idx, 1);
+		log = log;
+	}
+
+	let active = 'en';
+	let languages = ['en', 'ru'];
+	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
+	const srs = speechRecognitionAvailable
+		? {
+			en: new SR({ language: 'en', continuous: true }),
+			ru: new SR({ language: 'ru', continuous: true }),
 		}
-	}
+		: undefined;
 
-	function selectLanguage(language: string): void {
-		if (isListening) {
-			activeRecogniserStructure.speechRecogniser.stop();
-			speechRecognisersMap[language]?.speechRecogniser.start();
-		}
-
-		activeLanguage = language;
-	}
-
-	function triggerUpdates() {
-		speechRecognisersList = speechRecognisersList;
-		speechRecognisersMap = speechRecognisersMap;
-	}
 </script>
 
 <main class="MainContent">
@@ -76,28 +46,23 @@
 		<h1 class="Subhead-heading">Chats { data.chats.length }</h1>
 
 		<div class="Subhead-actions">
-			<div class="BtnGroup">
-				{#each languages as language}
-					<button class="BtnGroup-item btn" aria-selected={language === activeLanguage} on:click={() => selectLanguage(language)}>
-						{language}
-					</button>
-				{/each}
-			</div>
+			{#if srs}
+				<div class="BtnGroup">
+					{#each languages as language}
+						<button
+							class="BtnGroup-item btn"
+							aria-selected={language === active}
+							on:click={() => active = language}
+						>
+							{language}
+						</button>
+					{/each}
+				</div>
 
-			<button class="btn" on:click={startListening} disabled={isListening}>
-				listen me
-			</button>
-
-			<button class="btn" on:click={stopListening} disabled={!isListening}>
-				stop this
-			</button>
-
-
-			<button class="btn" on:click={clearHistory} disabled={!log.length}>
-				clear
-			</button>
-
-			<span class="State">[{activeLanguage} / {isListening ? 'listen' : 'deaf'}]</span>
+				<Listener sr={srs[active]} on:message={updateLog} />
+			{:else}
+				speech recongition is unavailable =(
+			{/if}
 		</div>
 
 
