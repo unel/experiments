@@ -1,7 +1,7 @@
 ---
 
 - name: run docker containers
-  hosts: dev_servers
+  hosts: dev_server
   remote_user: root
   vars_files:
     - 00-vars.yml
@@ -23,7 +23,7 @@
         chdir: "{{ project_root }}/experiments"
 
 - name: run containers initialisations
-  hosts: dev_servers
+  hosts: dev_server
   remote_user: root
   vars_files:
     - 00-vars.yml

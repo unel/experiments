@@ -65,3 +65,10 @@ uri: mongodb://root:pwd@localhost:7777
 ```
 
 - keyfiles/mongo-key (you can generate by `openssl rand -base64 756 > mongokey`)
+
+
+
+then you can run playbook:
+```bash
+ansible-playbook --verbose -f 10 playbooks/01-experiments-project/99-full.playbook.yml
+```
