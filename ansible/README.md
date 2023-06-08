@@ -61,7 +61,7 @@ sudo openssl dhparam -out dispatcher-dhparam.pem 4096
 
 - keyfiles/mongo-connection-config.yaml -- for pass connection string to mongo from config
 ```yml
-uri: mongodb://root:pwd@localhost:7777
+uri: mongodb://${MONGO_INITIAL_USERNAME}:${MONGO_INITIAL_PASSWORD}@localhost:${MONGO_PORT}
 ```
 
 - keyfiles/mongo-key (you can generate by `openssl rand -base64 756 > mongokey`)
