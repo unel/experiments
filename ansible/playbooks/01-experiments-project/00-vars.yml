@@ -1,0 +1,5 @@
+---
+project_name: 'e1'
+project_root: "{{ projects_work_dir }}/{{ project_name }}"
+domain_name: 'dev.experiments.unl'
+acceptable_mongo_image_version: "4.4.8"

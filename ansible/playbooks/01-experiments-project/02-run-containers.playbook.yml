@@ -1,0 +1,65 @@
+---
+
+- name: run docker containers
+  hosts: dev_servers
+  remote_user: root
+  vars_files:
+    - 00-vars.yml
+
+  tasks:
+    - name: install node_modules for node apps
+      community.general.npm:
+        path: "{{ project_root }}/experiments/apps/{{ item }}"
+      with_items:
+        - "webfront"
+        - "chatapi"
+        - "tg"
+        - "openai"
+
+    - name: run docker-compose
+      become: yes
+      shell: docker-compose up -d
+      args:
+        chdir: "{{ project_root }}/experiments"
+
+- name: run containers initialisations
+  hosts: dev_servers
+  remote_user: root
+  vars_files:
+    - 00-vars.yml
+
+  tasks:
+    - name: mongo // initialte replication system
+      shell: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'rs.initiate()'
+      args:
+        chdir: "{{ project_root }}/experiments"
+
+    - name: mongo // readPref
+      shell: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'db.getMongo().setReadPref("primaryPreferred")'
+      args:
+        chdir: "{{ project_root }}/experiments"
+
+    - name: mongo // secondaryOk
+      shell: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'rs.secondaryOk()'
+      args:
+        chdir: "{{ project_root }}/experiments"
+
+    - name: restart mongo-admin
+      shell: docker compose restart mongo-admin
+      args:
+        chdir: "{{ project_root }}/experiments"
+
+    - name: webfront // initialise db
+      shell: docker compose exec webfront npx prisma db seed
+      args:
+        chdir: "{{ project_root }}/experiments"
+
+    - name: webfront // initialise db
+      shell: docker compose exec webfront npx prisma db push
+      args:
+        chdir: "{{ project_root }}/experiments"
+
+    - name: chat-api // initialise db
+      shell: docker compose exec chat-api npx prisma db push
+      args:
+        chdir: "{{ project_root }}/experiments"

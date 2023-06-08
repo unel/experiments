@@ -1,0 +1,88 @@
+---
+
+- name: recreate file structure
+  hosts: dev_servers
+  remote_user: root
+  vars_files:
+    - 00-vars.yml
+
+  tasks:
+    - name: make directory structure
+      become: yes
+      file:
+        path: "{{ project_root }}/{{ item }}"
+        state: "directory"
+      with_items:
+        - "backups/mongo"
+        - "data/mongo"
+        - "experiments/" # --this is a root for repo
+        - "keyfiles/mongo"
+        - "keyfiles/dispatcher/dh"
+        - "keyfiles/dispatcher/ssl/certs"
+        - "keyfiles/dispatcher/ssl/private"
+
+
+    - name: clone a git repo with project
+      become: yes
+      git:
+        repo: https://github.com/unel/experiments.git
+        dest: "{{ project_root }}/experiments"
+        version: main
+        force: true
+        depth: 1
+        single_branch: true
+
+    - name: fill root secrets
+      become: yes
+      template:
+        src: "secrets/envs/root.env.template"
+        dest: "{{ project_root }}/experiments/.env"
+
+    - name: fill secrets (env files)
+      become: yes
+      copy:
+        src: "{{ item.from }}"
+        dest: "{{ item.to }}"
+      with_items:
+        - { from: "secrets/envs/webfront.env", to: "{{ project_root }}/experiments/apps/webfront/.env" }
+        - { from: "secrets/envs/chatapi.env", to: "{{ project_root }}/experiments/apps/chatapi/.env" }
+        - { from: "secrets/envs/tg.env", to: "{{ project_root }}/experiments/apps/tg/.env" }
+        - { from: "secrets/envs/openai.env", to: "{{ project_root }}/experiments/apps/openai/.env" }
+
+    - name: fill secrets (key files)
+      become: yes
+      copy:
+        src: "{{ item.from }}"
+        dest: "{{ item.to }}"
+      with_items:
+        - { from: "secrets/keyfiles/mongo-key", to: "{{ project_root }}/keyfiles/mongo/mongokey" }
+        - { from: "secrets/keyfiles/mongo-connection-config.yaml", to: "{{ project_root }}/keyfiles/mongo/config.yaml" }
+        - { from: "secrets/keyfiles/dispatcher-selfsigned.crt", to: "{{ project_root }}/keyfiles/dispatcher/ssl/certs/nginx-selfsigned.crt" }
+        - { from: "secrets/keyfiles/dispatcher-selfsigned.key", to: "{{ project_root }}/keyfiles/dispatcher/ssl/private/nginx-selfsigned.key" }
+        - { from: "secrets/keyfiles/dispatcher-dhparam.pem", to: "{{ project_root }}/keyfiles/dispatcher/dh/nginx-dhparam.pem" }
+
+
+    - name: change mode for some keys
+      become: yes
+      file:
+        path: "{{ project_root }}/keyfiles/mongo/mongokey"
+        owner: 999
+        mode: '400'
+
+    - name: update mongo version in compose file
+      become: yes
+      lineinfile:
+        path: "{{ project_root }}/experiments/docker-compose.yml"
+        regexp: "^(.*)image:\\s*'mongo:.+'"
+        line: "\\1image: 'mongo:{{ acceptable_mongo_image_version }}'"
+        backrefs: true
+        state: present
+
+    - name: update mongosh in compose file
+      become: yes
+      lineinfile:
+        path: "{{ project_root }}/experiments/docker-compose.yml"
+        regexp: "^(.*)test: mongosh(.*)$"
+        line: "\\1test: mongo\\2"
+        backrefs: true
+        state: present
