@@ -45,7 +45,6 @@ services:
     depends_on:
       mongo-server:
         condition: service_healthy
-        restart: true
 
     entrypoint: npm run dev -- --host --port=${WEBFRONT_NODE_PORT}
     working_dir: /app
@@ -81,7 +80,6 @@ services:
     depends_on:
       mongo-server:
         condition: service_healthy
-        restart: true
 
     entrypoint: npm run dev -- --host --port=${CHAT_API_NODE_PORT}
     working_dir: /app
@@ -131,7 +129,6 @@ services:
       mongo-server:
         condition: service_healthy
         # condition: service_started
-        restart: true
 
     environment:
       - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_INITIAL_USERNAME}
