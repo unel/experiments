@@ -1,65 +1,72 @@
 ---
 
-- name: run docker containers
+- name: Run docker containers
   hosts: dev_server
   remote_user: root
   vars_files:
     - 00-vars.yml
 
   tasks:
-    - name: install node_modules for node apps
-      community.general.npm:
-        path: "{{ project_root }}/experiments/apps/{{ item }}"
-      with_items:
-        - "webfront"
-        - "chatapi"
-        - "tg"
-        - "openai"
+    - name: Install nodeapss dependencies
+      become: true
+      ansible.builtin.command: docker compose -f ./docker-compose-preinstall.yml up
+      args:
+        chdir: "{{ project_root }}/experiments/"
+      register: node_deps
+      changed_when: node_deps.rc != 0
 
-    - name: run docker-compose
-      become: yes
-      shell: docker-compose up -d
+    - name: Cleanup after install
+      become: true
+      ansible.builtin.command: docker compose -f ./docker-compose-preinstall.yml rm -f
+      args:
+        chdir: "{{ project_root }}/experiments/"
+      register: node_deps_cleanup
+      changed_when: node_deps.rc != 0
+
+    - name: Run docker-compose
+      become: true
+      ansible.builtin.command: docker-compose up -d
       args:
         chdir: "{{ project_root }}/experiments"
 
-- name: run containers initialisations
+- name: Run containers initialisations
   hosts: dev_server
   remote_user: root
   vars_files:
     - 00-vars.yml
 
   tasks:
-    - name: mongo // initialte replication system
-      shell: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'rs.initiate()'
+    - name: Mongo // initialte replication system
+      ansible.builtin.command: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'rs.initiate()'
       args:
         chdir: "{{ project_root }}/experiments"
 
-    - name: mongo // readPref
-      shell: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'db.getMongo().setReadPref("primaryPreferred")'
+    - name: Mongo // readPref
+      ansible.builtin.command: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'db.getMongo().setReadPref("primaryPreferred")'
       args:
         chdir: "{{ project_root }}/experiments"
 
-    - name: mongo // secondaryOk
-      shell: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'rs.secondaryOk()'
+    - name: Mongo // secondaryOk
+      ansible.builtin.command: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'rs.secondaryOk()'
       args:
         chdir: "{{ project_root }}/experiments"
 
-    - name: restart mongo-admin
-      shell: docker compose restart mongo-admin
+    - name: Restart mongo-admin
+      ansible.builtin.command: docker compose restart mongo-admin
       args:
         chdir: "{{ project_root }}/experiments"
 
-    - name: webfront // initialise db
-      shell: docker compose exec webfront npx prisma db seed
+    - name: Webfront // initialise db
+      ansible.builtin.command: docker compose exec webfront npx prisma db seed
       args:
         chdir: "{{ project_root }}/experiments"
 
-    - name: webfront // initialise db
-      shell: docker compose exec webfront npx prisma db push
+    - name: Webfront // initialise db
+      ansible.builtin.command: docker compose exec webfront npx prisma db push
       args:
         chdir: "{{ project_root }}/experiments"
 
-    - name: chat-api // initialise db
-      shell: docker compose exec chat-api npx prisma db push
+    - name: Chat-api // initialise db
+      ansible.builtin.command: docker compose exec chat-api npx prisma db push
       args:
         chdir: "{{ project_root }}/experiments"
