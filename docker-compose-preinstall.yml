@@ -1,14 +1,14 @@
 version: "3.9"
 services:
   install-webfront-deps:
-    build: 'images/nodeapp'
+    build: './images/nodeapp'
     entrypoint: npm ci
     working_dir: /app
     volumes:
       - ${APPS_DIR}/webfront:/app
 
   install-chat-api-deps:
-    image: 'images/nodeapp'
+    build: './images/nodeapp'
     entrypoint: npm ci
     working_dir: /app
     volumes:

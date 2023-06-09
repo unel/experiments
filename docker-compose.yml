@@ -40,7 +40,7 @@ services:
       - '444:444'
 
   webfront:
-    build: 'images/nodeapp'
+    build: './images/nodeapp'
 
     depends_on:
       mongo-server:
@@ -75,7 +75,7 @@ services:
     #   - '${WEBFRONT_DEV_NODE_PORT}:${WEBFRONT_DEV_NODE_PORT}'
 
   chat-api:
-    image: 'images/nodeapp'
+    build: './images/nodeapp'
 
     depends_on:
       mongo-server:
