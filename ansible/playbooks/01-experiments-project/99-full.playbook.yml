@@ -1,7 +1,10 @@
 ---
 
-- name: deploy structure
+- name: Deploy structure
   ansible.builtin.import_playbook: '01-deploy-experiments-structure.playbook.yml'
 
-- name: run containers
-  ansible.builtin.import_playbook: '02-run-containers.playbook.yml'
+- name: Install dependencies
+  ansible.builtin.import_playbook: '02-install-dependencies.playbook.yml'
+
+- name: Run containers
+  ansible.builtin.import_playbook: '03-run-containers.playbook.yml'
