@@ -1,0 +1,24 @@
+---
+
+- name: Install dependencies
+  hosts: dev_server
+  remote_user: root
+  vars_files:
+    - 00-vars.yml
+
+  tasks:
+    - name: Install nodeapss dependencies
+      become: true
+      ansible.builtin.command: docker compose -f ./docker-compose-preinstall.yml up
+      args:
+        chdir: "{{ compose_dir }}"
+      register: node_deps
+      changed_when: node_deps.rc != 0
+
+    - name: Cleanup after install
+      become: true
+      ansible.builtin.command: docker compose -f ./docker-compose-preinstall.yml rm -f
+      args:
+        chdir: "{{ compose_dir }}"
+      register: node_deps_cleanup
+      changed_when: node_deps.rc != 0

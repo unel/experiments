@@ -1,0 +1,86 @@
+---
+
+- name: Gather state
+  ansible.builtin.import_playbook: '00-gather-state.playbook.yml'
+
+- name: Run docker containers
+  hosts: dev_server
+  remote_user: root
+  vars_files:
+    - 00-vars.yml
+
+  tasks:
+    - name: Run docker-compose
+      become: true
+      ansible.builtin.command: docker-compose up -d
+      args:
+        chdir: "{{ compose_dir }}"
+      register: compose
+      changed_when: compose.rc != 0
+
+- name: Run containers initialisations
+  hosts: dev_server
+  remote_user: root
+  vars_files:
+    - 00-vars.yml
+
+  tasks:
+    - name: Mongo // initialte replication system
+      ansible.builtin.command: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'rs.initiate()'
+      args:
+        chdir: "{{ compose_dir }}"
+      when: not is_mongo_already_started
+      changed_when: 1
+      notify: "store::mongo_rs_initialised"
+
+    - name: Mongo // readPref
+      ansible.builtin.command: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'db.getMongo().setReadPref("primaryPreferred")'
+      args:
+        chdir: "{{ compose_dir }}"
+      when: not is_mongo_already_started
+      changed_when: 1
+
+    - name: Mongo // secondaryOk
+      ansible.builtin.command: docker compose exec mongo-server mongo -u root -p pwd --port 7777 --eval 'rs.secondaryOk()'
+      args:
+        chdir: "{{ compose_dir }}"
+      when: not is_mongo_already_started
+      changed_when: 1
+      notify: "restart::mongo-admin"
+
+    - name: Webfront // initialise db
+      ansible.builtin.command: docker compose exec webfront npx prisma db seed
+      args:
+        chdir: "{{ compose_dir }}"
+      when: not is_mongo_already_started
+      changed_when: 1
+
+    - name: Webfront // initialise db
+      ansible.builtin.command: docker compose exec webfront npx prisma db push
+      args:
+        chdir: "{{ compose_dir }}"
+      when: not is_mongo_already_started
+      changed_when: 1
+
+    - name: Chat-api // initialise db
+      ansible.builtin.command: docker compose exec chat-api npx prisma db push
+      args:
+        chdir: "{{ compose_dir }}"
+      when: not is_mongo_already_started
+      changed_when: 1
+
+  handlers:
+    - name: Restart mongo-admin
+      listen: 'restart::mongo-admin'
+      ansible.builtin.command: docker compose restart mongo-admin
+      args:
+        chdir: "{{ compose_dir }}"
+      when: not is_mongo_already_started
+      changed_when: 1
+
+    - name: Store mongo rs is initialised
+      listen: 'store::mongo_rs_initialised'
+      ansible.builtin.file:
+        path: "{{ run_dir }}/mongo_rs_initialised"
+        state: "touch"
+        mode: "444"

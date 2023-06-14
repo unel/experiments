@@ -1,0 +1,38 @@
+---
+
+- name: Gather information about systems state
+  hosts: dev_server
+  remote_user: root
+  vars_files:
+    - 00-vars.yml
+
+  tasks:
+    # all files in /run directory sets as variable in run_vars vith content of that file
+    # revealed errors: empty files, no files, files with more than 1 line
+    - name: Pull "variables" from "/run" directory
+      ansible.builtin.shell: set -o pipefail && find ./ -type f -printf "%P\n" -exec cat {} \;
+      args:
+        chdir: "{{ project_root }}/run"
+      register: pull_run_result
+      changed_when: 0
+
+    - name: Process "run variables"
+      ansible.builtin.set_fact:
+        run_vars: "{{ dict(pull_run_result.stdout_lines | slice(((pull_run_result.stdout_lines | length) // 2) | round)) }}"
+
+
+    - name: Store runned servers in docker compose ps output
+      ansible.builtin.shell: set -o pipefail && docker compose ps | cut -d ' ' -f 1
+      args:
+        chdir: "{{ compose_dir }}"
+      register: mongo_stat_result
+      changed_when: 0
+
+    - name: Store fact about started processes
+      ansible.builtin.set_fact:
+        started_processes: "{{ mongo_stat_result.stdout_lines | reject('eq', 'NAME') }}"
+
+    - name: Store fact about mongo-server already started
+      ansible.builtin.set_fact:
+        is_mongo_already_started: "{{ started_processes | select('match', '.*mongo-server.*') | length == 1 }}"
+        is_too_many_mongo_started: "{{ started_processes | select('match', '.*mongo-server.*') | length > 1 }}"

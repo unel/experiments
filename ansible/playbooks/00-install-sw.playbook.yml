@@ -1,0 +1,28 @@
+---
+- name: install dev software
+  hosts: machines
+  remote_user: root
+  tasks:
+    - name: ensure navigation software is installed
+      become: yes
+      package:
+        name: fish, bat, btop
+        state: present
+
+    - name: ensure git installed
+      become: yes
+      package:
+        name: git
+        state: present
+
+    - name: ensure docker is installed
+      become: yes
+      package:
+        name: docker
+        state: present
+
+    - name: ensure docker compose plugin is installed
+      become: yes
+      package:
+        name: docker-compose-plugin
+        state: present
