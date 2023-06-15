@@ -1,90 +1,96 @@
 const SpeechRecognition = (globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition);
 
-type SRListenerEventName = keyof SpeechRecognitionEventMap;
-type SRListeners = Partial<Record<SRListenerEventName, (ev: SpeechRecognitionEvent | Event) => void>>;
-
-type InitOptions = {
-    language?: string,
-    continuous?: boolean,
-    listen?: SRListeners,
+function callAllFns(fns: Array<() => void>): void {
+	for (const fn of fns) {
+		fn();
+	}
 }
 
 export function isSpeechRecognitionAvailable(): boolean {
-    return typeof SpeechRecognition !== "undefined";
+	return typeof SpeechRecognition !== "undefined";
 }
 
-export function initSpeechRecognition({ language = 'en', continuous = false, listen = {} }: InitOptions = {}) {
-    const rkg = new SpeechRecognition();
-
-    rkg.lang = language;
-    rkg.continuous = continuous;
-
-    for (const [eventName, listener] of Object.entries(listen)) {
-        rkg.addEventListener(eventName, listener);
-    }
-
-    return rkg;
-}
-
-export type SRStructure = {
-    state: {
-        isListening: boolean,
-        lastError?: any,
-        log: Array<{
-            language: string,
-            datetime: number,
-            text: string,
-        }>
-    },
-    language: string,
-    speechRecogniser: SpeechRecognition,
+export type SRStatus = {
+	isActive: boolean,
+	error?: Error,
 };
 
-type MakeSRSOptions = {
-    language: string,
-    continuous: boolean,
-    listener: (structure: SRStructure) => void;
-}
+export type SRResultItem = {
+	transcript: string,
+	probability?: number,
+};
 
-export function makeSpeechRecognitionStructure({ language, continuous, listener }: MakeSRSOptions) {
-    const structure: SRStructure = {
-        state: {
-            isListening: false,
-            log: [],
-        },
-        language,
-        speechRecogniser: initSpeechRecognition({
-            language,
-            continuous,
-            listen: {
-                start: () => {
-                    structure.state.isListening = true;
-                    listener(structure);
-                },
-                error: (e) => {
-                    structure.state.lastError = e;
-                    console.error(`${language} recogniser error:`, e);
-                    listener(structure);
-                },
-                end: () => {
-                    structure.state.isListening = false;
-                    listener(structure);
-                },
-                result: (e) => {
-                    const data = (e as SpeechRecognitionEvent);
-                    const item = data.results[data.resultIndex].item(0);
+export class SR {
+	_sr: SpeechRecognition;
+	isActive: boolean;
+	_destructors: Array<() => void>;
 
-                    structure.state.log.push({
-                        datetime: Date.now(),
-                        language,
-                        text: item.transcript,
-                    });
+	constructor({ language='en', continuous=false } = {}) {
+		this._sr = new SpeechRecognition();
+		this._sr.lang = language;
+		this._sr.continuous = continuous;
+		this.isActive = false;
 
-                    listener(structure);
-                }
-            }
-        })
-    };
+		this._destructors = [
+			() => { this._sr.stop(); },
 
-    return structure;
+			this.addStatusListener(({ isActive }) => {
+				this.isActive = isActive;
+			}),
+		];
+	}
+
+	destroy() {
+		callAllFns(this._destructors);
+	}
+
+	startListening() {
+		this._sr.start();
+	}
+
+	stopListening() {
+		this._sr.stop();
+	}
+
+	addStatusListener(listener: (statusInfo: SRStatus) => void) {
+		const unlisteners = [
+			this._addSREventListener('start', () => {
+				listener({ isActive: true });
+			}),
+
+			this._addSREventListener('end', () => {
+				listener({ isActive: false });
+			}),
+
+			this._addSREventListener('error', (e) => {
+				listener({ isActive: false, error: e });
+			}),
+		];
+
+		return () => {
+			callAllFns(unlisteners);
+		}
+	}
+
+	addErrorListener(listener: (e: SpeechRecognitionErrorEvent) => void) {
+		return this._addSREventListener('error', listener);
+	}
+
+	addResultListener(listener: (e: SpeechRecognitionEvent) => void) {
+		return this._addSREventListener('result', listener);
+	}
+
+	addMessageListener(listener: (data: SRResultItem) => void) {
+		return this.addResultListener((e) => {
+			listener(e.results[e.resultIndex].item(0))
+		});
+	}
+
+	_addSREventListener<EN extends keyof SpeechRecognitionEventMap>(eventName: EN, listener: (this: SpeechRecognition, ev: SpeechRecognitionEventMap[EN]) => any) {
+		this._sr.addEventListener(eventName, listener);
+
+		return () => {
+			this._sr.removeEventListener(eventName, listener);
+		};
+	}
 }

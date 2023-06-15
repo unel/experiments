@@ -1,109 +1,187 @@
 <script lang="ts">
-	import { isSpeechRecognitionAvailable, initSpeechRecognition, makeSpeechRecognitionStructure, type SRStructure } from "$lib/stt";
+	// imports
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
-	let languages = ['en', 'ru', 'fr', 'ge'];
-	let activeLanguage: string = languages[0] || 'en';
-	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
+	import { api, type ChatMessage } from '$lib/api';
+	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from "$lib/stt";
+
+	import Listener from '@components/Listener.svelte';
+	import CButton from '@components/ButtonWithConfirmation.svelte';
+	import CInput from '@components/CustomInput.svelte';
+	// ------------------------------------
+
+
+	// page data (see +page.server.ts@load)
+	export let data;
+	// ------------------------------------
+
+
+	// page logic
 	const dtFormatter = new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'medium' });
 
-	let speechRecognisersList: Array<SRStructure> = []
-	let speechRecognisersMap: Record<string, SRStructure> = {};
+	function updateLog(e: CustomEvent<SRResultItem>) {
+		createMessage({ language: activeLanguage, text: e.detail.transcript });
+	}
 
-	function initSpeechRecognisers() {
-		for (const language of languages) {
-			const structure = makeSpeechRecognitionStructure({
-				language,
-				continuous: true,
-				listener: () => {
-					triggerUpdates();
-				},
-			})
+	function navigateToChat(chatId: string) {
+		goto(`${currentPageUrl.origin}${currentPageUrl.pathname}#chats:${chatId}`);
+	}
 
-			speechRecognisersList.push(structure);
-			speechRecognisersMap[language] = structure;
+	function navigateToDefaultState() {
+		goto(`${currentPageUrl.origin}${currentPageUrl.pathname}`);
+	}
+
+	async function removeChat(idx: number) {
+		const chat = data.chats?.[idx];
+
+		if (!chat) {
+			return;
+		}
+
+		const result = await api.removeChat(fetch, { chatId: chat.id });
+		if (!result?.ok) {
+			return;
+		}
+
+		const isActiveChat = chat.id === activeChatId;
+		const nextChatId = data.chats[idx + 1]?.id;
+		const prevChatId = data.chats[idx - 1]?.id;
+		const newActiveChatId = nextChatId || prevChatId;
+
+		data.chats.splice(idx, 1);
+		data.chats = data.chats;
+		if (isActiveChat) {
+			if (newActiveChatId) {
+				navigateToChat(newActiveChatId);
+			} else {
+				navigateToDefaultState();
+			}
 		}
 	}
 
-	if (speechRecognitionAvailable) {
-		initSpeechRecognisers();
-	}
+	async function saveActiveChatTitle() {
+		const { id, title } = activeChat || {};
 
-	$: activeRecogniserStructure = speechRecognisersMap[activeLanguage];
-	$: isListening = activeRecogniserStructure?.state.isListening || false;
-	$: log = activeRecogniserStructure?.state.log || [];
-
-	function startListening() {
-		activeRecogniserStructure?.speechRecogniser.start();
-	}
-
-	function stopListening() {
-		activeRecogniserStructure?.speechRecogniser.stop();
-	}
-
-	function clearHistory() {
-		if (activeRecogniserStructure) {
-			activeRecogniserStructure.state.log = [];
-			triggerUpdates();
-		}
-	}
-
-	function removeTranscript(idx: number) {
-		if (activeRecogniserStructure) {
-			activeRecogniserStructure.state.log.splice(idx, 1);
-			triggerUpdates();
-		}
-	}
-
-	function selectLanguage(language: string): void {
-		if (isListening) {
-			activeRecogniserStructure.speechRecogniser.stop();
-			speechRecognisersMap[language]?.speechRecogniser.start();
+		if (!id) {
+			return;
 		}
 
-		activeLanguage = language;
+		await api.updateChat(fetch, { chatId: id, title });
 	}
 
-	function triggerUpdates() {
-		speechRecognisersList = speechRecognisersList;
-		speechRecognisersMap = speechRecognisersMap;
+	async function removeTranscript(idx: number) {
+		if (!activeChat?.messages) {
+			return;
+		}
+
+		const result = await api.removeMessage(fetch, {
+			chatId: activeChat.id,
+			messageId: activeChat.messages[idx].id,
+		});
+
+		if (!result.ok) {
+			return;
+		}
+
+		activeChat.messages.splice(idx, 1);
+		activeChat.messages = activeChat.messages;
 	}
+
+	async function createChat() {
+		const result = await api.createChat(fetch, { title: 'new chat', userId: data.user?.id || '-' });
+		data.chats.unshift({
+			...result,
+			messages: [],
+		});
+		data.chats = data.chats;
+		navigateToChat(result.id);
+	}
+
+	async function createMessage({ language, text }: Record<string, string>) {
+		if (!activeChatId || !data.user?.id) {
+			return;
+		}
+
+		const result = await api.createMessage(fetch, {
+			chatId: activeChatId,
+			userId: data.user?.id,
+			language,
+			text,
+		});
+
+		if (!activeChat) {
+			return;
+		}
+
+		activeChat.messages = activeChat.messages || [];
+		activeChat.messages.push(result);
+		activeChat.messages = activeChat.messages;
+	}
+
+	async function saveChatMessageText(chatMessage: ChatMessage) {
+		const { chatId, text, id } = chatMessage || {};
+
+		if (!id || !chatId) {
+			return;
+		}
+
+		await api.updateMessage(fetch, { messageId: id, chatId, text });
+	}
+
+	type Lang = 'en' | 'ru';
+	let activeLanguage: Lang = 'en';
+	const languages: Array<Lang> = ['en', 'ru'];
+	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
+	const srs = speechRecognitionAvailable
+		? {
+			en: new SR({ language: 'en', continuous: true }),
+			ru: new SR({ language: 'ru', continuous: true }),
+		}
+		: undefined;
+
+	$: currentPageUrl = $page.url;
+	$: activeChatId = currentPageUrl.hash.split(':')[1];
+	$: activeChat = data.chats?.find?.(chat => chat.id === activeChatId);
 </script>
 
 <main class="MainContent">
 	<header class="Subhead">
-		<h1 class="Subhead-heading">Chats</h1>
+		<h1 class="Subhead-heading">
+			{#if activeChat}
+				Chat::
+				<CInput bind:value={activeChat.title} on:confirmed={saveActiveChatTitle} />
+			{:else}
+				Chats
+			{/if}
+		</h1>
 
 		<div class="Subhead-actions">
-			<div class="BtnGroup">
-				{#each languages as language}
-					<button class="BtnGroup-item btn" aria-selected={language === activeLanguage} on:click={() => selectLanguage(language)}>
-						{language}
-					</button>
-				{/each}
-			</div>
+			{#if srs}
+				<div class="BtnGroup">
+					{#each languages as language}
+						<button
+							class="BtnGroup-item btn"
+							aria-selected={language === activeLanguage}
+							on:click={() => activeLanguage = language}
+						>
+							{language}
+						</button>
+					{/each}
+				</div>
 
-			<button class="btn" on:click={startListening} disabled={isListening}>
-				listen me
-			</button>
-
-			<button class="btn" on:click={stopListening} disabled={!isListening}>
-				stop this
-			</button>
-
-
-			<button class="btn" on:click={clearHistory} disabled={!log.length}>
-				clear
-			</button>
-
-			<span class="State">[{activeLanguage} / {isListening ? 'listen' : 'deaf'}]</span>
+				<Listener sr={srs[activeLanguage]} on:message={updateLog} />
+			{:else}
+				speech recongition is unavailable =(
+			{/if}
 		</div>
 	</header>
 
 
 	<div class="Layout">
 		<div class="Layout-main">
-			<section class="transcriptss">
-				{#each log as logEntry, idx}
+			<section class="transcripts">
+				{#each (activeChat?.messages || []) as chatMessage, idx}
 					<div class="TimelineItem">
 						<div class="TimelineItem-badge">
 							{idx + 1}
@@ -111,11 +189,11 @@
 
 						<div class="TimelineItem-body transcript">
 							<div class="transcript-meta">
-								{dtFormatter.format(logEntry.datetime)}
+								{dtFormatter.format(chatMessage.createdAt)}
 							</div>
 
 							<div class="transcript-text">
-								{logEntry.text}
+								<CInput bind:value={chatMessage.text} on:confirmed={() => saveChatMessageText(chatMessage)} />
 							</div>
 
 							<div class="transcript-controls">
@@ -131,12 +209,15 @@
 
 		<div class="Layout-sidebar">
 			<nav class="SideNav border" style="max-width: 360px">
-				<button class="SideNav-item">+ Chat</button>
+				<button class="SideNav-item" on:click={createChat}>+ Chat</button>
 
-				<a class="SideNav-item" href="#url">Account</a>
-				<a class="SideNav-item" href="#url">Profile</a>
-				<a class="SideNav-item" href="#url">Emails</a>
-				<a class="SideNav-item" href="#url">Notifications</a>
+				{#each data.chats as chat, idx}
+					<a class="SideNav-item chat-item" aria-current={chat.id === activeChatId} href="#chat:{chat.id}">
+						#{idx} {chat.title}
+
+						<CButton actionString='remove' on:confirmed={() => removeChat(idx)}>remove</CButton>
+					</a>
+				{/each}
 			</nav>
 		</div>
 	  </div>
@@ -158,7 +239,7 @@
 	.transcripts {
 		display: flex;
 		flex-direction: column;
-		row-gap: var(--space-mid);
+		/* row-gap: var(--space-mid); */
 	}
 
 	.transcript {
@@ -166,5 +247,11 @@
 		flex-direction: row;
 		align-items: center;
 		column-gap: var(--space)
+	}
+
+	.chat-item {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
 	}
 </style>

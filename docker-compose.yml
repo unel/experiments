@@ -54,6 +54,7 @@ services:
     environment:
       - NODE_PORT=${WEBFRONT_NODE_PORT}
       - DEV_NODE_PORT=${WEBFRONT_DEV_NODE_PORT}
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
 
       - PROTOCOL_HEADER=x-forwarded-proto
       - HOST_HEADER=x-forwarded-host
