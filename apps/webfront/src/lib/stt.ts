@@ -10,6 +10,16 @@ export function isSpeechRecognitionAvailable(): boolean {
 	return typeof SpeechRecognition !== "undefined";
 }
 
+export type SRStatus = {
+	isActive: boolean,
+	error?: Error,
+};
+
+export type SRResultItem = {
+	transcript: string,
+	probability?: number,
+};
+
 export class SR {
 	_sr: SpeechRecognition;
 	isActive: boolean;
@@ -42,7 +52,7 @@ export class SR {
 		this._sr.stop();
 	}
 
-	addStatusListener(listener: (statusInfo: Record<string, any>) => void) {
+	addStatusListener(listener: (statusInfo: SRStatus) => void) {
 		const unlisteners = [
 			this._addSREventListener('start', () => {
 				listener({ isActive: true });
@@ -70,7 +80,7 @@ export class SR {
 		return this._addSREventListener('result', listener);
 	}
 
-	addMessageListener(listener: (data: Record<string, any>) => void) {
+	addMessageListener(listener: (data: SRResultItem) => void) {
 		return this.addResultListener((e) => {
 			listener(e.results[e.resultIndex].item(0))
 		});
