@@ -131,7 +131,17 @@ const api = {
             method: 'DELETE',
             headers: defaultHeaders,
         });
-    }
+    },
+
+    updateMessage: async (fetchFn: FetchFN, { chatId, messageId, ...updates }): Promise<ChatMessage> => {
+        const sChat = await fetchJSON(fetchFn, buildUrl(`/chats/${chatId}/messages/${messageId}`), {
+            method: 'POST',
+            headers: defaultHeaders,
+            body: JSON.stringify(updates)
+        });
+
+        return mapChatMessage(sChat);
+    },
 }
 
 

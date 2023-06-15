@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
-	import { api } from '$lib/api';
+	import { api, type ChatMessage } from '$lib/api';
 	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from "$lib/stt";
 
 	import Listener from '@components/Listener.svelte';
@@ -119,6 +119,16 @@
 		activeChat.messages = activeChat.messages;
 	}
 
+	async function saveChatMessageText(chatMessage: ChatMessage) {
+		const { chatId, text, id } = chatMessage || {};
+
+		if (!id || !chatId) {
+			return;
+		}
+
+		await api.updateMessage(fetch, { messageId: id, chatId, text });
+	}
+
 	type Lang = 'en' | 'ru';
 	let activeLanguage: Lang = 'en';
 	const languages: Array<Lang> = ['en', 'ru'];
@@ -183,7 +193,7 @@
 							</div>
 
 							<div class="transcript-text">
-								{chatMessage.text}
+								<CInput bind:value={chatMessage.text} on:confirmed={() => saveChatMessageText(chatMessage)} />
 							</div>
 
 							<div class="transcript-controls">
