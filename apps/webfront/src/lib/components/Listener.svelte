@@ -1,7 +1,7 @@
 <script lang="ts">
 	// imports
 	import { createEventDispatcher } from 'svelte';
-	import type { SR, SRStructure } from '$lib/stt';
+	import type { SR, SRStatus, SRResultItem } from '$lib/stt';
 	// ----------------------------------------------
 
 
@@ -11,7 +11,10 @@
 
 
 	// component logic
-	const dispatchEvent = createEventDispatcher();
+	const dispatchEvent = createEventDispatcher<{
+		status: SRStatus,
+		message: SRResultItem,
+	}>();
 	let isListening = false;
 
 	function startListening() {
@@ -26,13 +29,13 @@
 		(isListening ? stopListening : startListening)();
 	}
 
-	function onStatusUpdate(status) {
+	function onStatusUpdate(status: SRStatus) {
 		isListening = status.isActive;
 
 		dispatchEvent('status', status);
 	}
 
-	function onMessageRecognised(data) {
+	function onMessageRecognised(data: SRResultItem) {
 		dispatchEvent('message', data);
 	}
 
