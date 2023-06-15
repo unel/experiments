@@ -95,6 +95,13 @@ const api = {
         return mapChat(sChat);
     },
 
+    removeChat: async (fetchFn: FetchFN, { chatId }): Promise<{ ok: boolean }> => {
+        return fetchJSON(fetchFn, buildUrl(`/chats/${chatId}`), {
+            method: 'DELETE',
+            headers: defaultHeaders,
+        });
+    },
+
     createMessage: async (fetchFn: FetchFN, { userId, language, chatId, text }): Promise<ChatMessage> => {
         const sMessage = await fetchJSON(fetchFn, buildUrl(`/chats/${chatId}/messages`), {
             method: 'POST',
