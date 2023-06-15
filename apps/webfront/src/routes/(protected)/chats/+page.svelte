@@ -1,6 +1,12 @@
 <script lang="ts">
 	// imports
-	import { SR, isSpeechRecognitionAvailable } from "$lib/stt";
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+
+
+	import { api } from '$lib/api';
+	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from "$lib/stt";
+
 	import Listener from '@components/Listener.svelte';
 	// ------------------------------------
 
@@ -13,24 +19,65 @@
 	// page logic
 	const dtFormatter = new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'medium' });
 
-	let log = [];
-	function updateLog(e) {
-		console.log('updating log', e);
+	function updateLog(e: CustomEvent<SRResultItem>) {
+		createMessage({ language: activeLanguage, text: e.detail.transcript });
+	}
 
-		log.push({
-			datetime: Date.now(),
-			text: e.detail.transcript,
+	async function removeTranscript(idx: number) {
+		if (!activeChat?.messages) {
+			return;
+		}
+
+		const result = await api.removeMessage(fetch, {
+			chatId: activeChat.id,
+			messageId: activeChat.messages[idx].id,
 		});
-		log = log;
+
+		console.log('result', result);
+		debugger;
+
+		if (!result.ok) {
+			return;
+		}
+
+		activeChat.messages.splice(idx, 1);
+		activeChat.messages = activeChat.messages;
 	}
 
-	function removeTranscript(idx: number) {
-		log.splice(idx, 1);
-		log = log;
+	async function createChat() {
+		const result = await api.createChat(fetch, { title: 'new chat', userId: ''});
+		data.chats.unshift({
+			...result,
+			messages: [],
+		});
+		data.chats = data.chats;
+		goto(`${currentPageUrl.origin}${currentPageUrl.pathname}#chats:${result.id}`);
 	}
 
-	let active = 'en';
-	let languages = ['en', 'ru'];
+	async function createMessage({ language, text }: Record<string, string>) {
+		if (!activeChatId || !data.user?.id) {
+			return;
+		}
+
+		const result = await api.createMessage(fetch, {
+			chatId: activeChatId,
+			userId: data.user?.id,
+			language,
+			text,
+		});
+
+		if (!activeChat) {
+			return;
+		}
+
+		activeChat.messages = activeChat.messages || [];
+		activeChat.messages.push(result);
+		activeChat.messages = activeChat.messages;
+	}
+
+	type Lang = 'en' | 'ru';
+	let activeLanguage: Lang = 'en';
+	const languages: Array<Lang> = ['en', 'ru'];
 	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
 	const srs = speechRecognitionAvailable
 		? {
@@ -39,11 +86,14 @@
 		}
 		: undefined;
 
+	$: currentPageUrl = $page.url;
+	$: activeChatId = currentPageUrl.hash.split(':')[1];
+	$: activeChat = data.chats?.find?.(chat => chat.id === activeChatId);
 </script>
 
 <main class="MainContent">
 	<header class="Subhead">
-		<h1 class="Subhead-heading">Chats { data.chats.length }</h1>
+		<h1 class="Subhead-heading">Chat / { activeChat?.title || '' }</h1>
 
 		<div class="Subhead-actions">
 			{#if srs}
@@ -51,15 +101,15 @@
 					{#each languages as language}
 						<button
 							class="BtnGroup-item btn"
-							aria-selected={language === active}
-							on:click={() => active = language}
+							aria-selected={language === activeLanguage}
+							on:click={() => activeLanguage = language}
 						>
 							{language}
 						</button>
 					{/each}
 				</div>
 
-				<Listener sr={srs[active]} on:message={updateLog} />
+				<Listener sr={srs[activeLanguage]} on:message={updateLog} />
 			{:else}
 				speech recongition is unavailable =(
 			{/if}
@@ -69,8 +119,8 @@
 
 	<div class="Layout">
 		<div class="Layout-main">
-			<section class="transcriptss">
-				{#each log as logEntry, idx}
+			<section class="transcripts">
+				{#each (activeChat?.messages || []) as chatMessage, idx}
 					<div class="TimelineItem">
 						<div class="TimelineItem-badge">
 							{idx + 1}
@@ -78,11 +128,11 @@
 
 						<div class="TimelineItem-body transcript">
 							<div class="transcript-meta">
-								{dtFormatter.format(logEntry.datetime)}
+								{dtFormatter.format(chatMessage.createdAt)}
 							</div>
 
 							<div class="transcript-text">
-								{logEntry.text}
+								{chatMessage.text}
 							</div>
 
 							<div class="transcript-controls">
@@ -98,12 +148,11 @@
 
 		<div class="Layout-sidebar">
 			<nav class="SideNav border" style="max-width: 360px">
-				<button class="SideNav-item">+ Chat</button>
+				<button class="SideNav-item" on:click={createChat}>+ Chat</button>
 
-				<a class="SideNav-item" href="#url">Account</a>
-				<a class="SideNav-item" href="#url">Profile</a>
-				<a class="SideNav-item" href="#url">Emails</a>
-				<a class="SideNav-item" href="#url">Notifications</a>
+				{#each data.chats as chat, idx}
+					<a class="SideNav-item" aria-current={chat.id === activeChatId} href="#chat:{chat.id}">#{idx} {chat.title}</a>
+				{/each}
 			</nav>
 		</div>
 	  </div>
@@ -125,7 +174,7 @@
 	.transcripts {
 		display: flex;
 		flex-direction: column;
-		row-gap: var(--space-mid);
+		/* row-gap: var(--space-mid); */
 	}
 
 	.transcript {
