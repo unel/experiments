@@ -8,6 +8,7 @@
 	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from "$lib/stt";
 
 	import Listener from '@components/Listener.svelte';
+	import CButton from '@components/ButtonWithConfirmation.svelte';
 	// ------------------------------------
 
 
@@ -23,6 +24,42 @@
 		createMessage({ language: activeLanguage, text: e.detail.transcript });
 	}
 
+	function navigateToChat(chatId: string) {
+		goto(`${currentPageUrl.origin}${currentPageUrl.pathname}#chats:${chatId}`);
+	}
+
+	function navigateToDefaultState() {
+		goto(`${currentPageUrl.origin}${currentPageUrl.pathname}`);
+	}
+
+	async function removeChat(idx: number) {
+		const chat = data.chats?.[idx];
+
+		if (!chat) {
+			return;
+		}
+
+		const result = await api.removeChat(fetch, { chatId: chat.id });
+		if (!result?.ok) {
+			return;
+		}
+
+		const isActiveChat = chat.id === activeChatId;
+		const nextChatId = data.chats[idx + 1]?.id;
+		const prevChatId = data.chats[idx - 1]?.id;
+		const newActiveChatId = nextChatId || prevChatId;
+
+		data.chats.splice(idx, 1);
+		data.chats = data.chats;
+		if (isActiveChat) {
+			if (newActiveChatId) {
+				navigateToChat(newActiveChatId);
+			} else {
+				navigateToDefaultState();
+			}
+		}
+	}
+
 	async function removeTranscript(idx: number) {
 		if (!activeChat?.messages) {
 			return;
@@ -32,9 +69,6 @@
 			chatId: activeChat.id,
 			messageId: activeChat.messages[idx].id,
 		});
-
-		console.log('result', result);
-		debugger;
 
 		if (!result.ok) {
 			return;
@@ -51,7 +85,7 @@
 			messages: [],
 		});
 		data.chats = data.chats;
-		goto(`${currentPageUrl.origin}${currentPageUrl.pathname}#chats:${result.id}`);
+		navigateToChat(result.id);
 	}
 
 	async function createMessage({ language, text }: Record<string, string>) {
@@ -151,7 +185,11 @@
 				<button class="SideNav-item" on:click={createChat}>+ Chat</button>
 
 				{#each data.chats as chat, idx}
-					<a class="SideNav-item" aria-current={chat.id === activeChatId} href="#chat:{chat.id}">#{idx} {chat.title}</a>
+					<a class="SideNav-item chat-item" aria-current={chat.id === activeChatId} href="#chat:{chat.id}">
+						#{idx} {chat.title}
+
+						<CButton actionString='remove' on:confirmed={() => removeChat(idx)}>remove</CButton>
+					</a>
 				{/each}
 			</nav>
 		</div>
@@ -182,5 +220,11 @@
 		flex-direction: row;
 		align-items: center;
 		column-gap: var(--space)
+	}
+
+	.chat-item {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
 	}
 </style>
