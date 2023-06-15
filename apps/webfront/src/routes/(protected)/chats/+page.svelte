@@ -3,12 +3,12 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
-
 	import { api } from '$lib/api';
 	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from "$lib/stt";
 
 	import Listener from '@components/Listener.svelte';
 	import CButton from '@components/ButtonWithConfirmation.svelte';
+	import CInput from '@components/CustomInput.svelte';
 	// ------------------------------------
 
 
@@ -58,6 +58,16 @@
 				navigateToDefaultState();
 			}
 		}
+	}
+
+	async function saveActiveChatTitle() {
+		const { id, title } = activeChat || {};
+
+		if (!id) {
+			return;
+		}
+
+		await api.updateChat(fetch, { chatId: id, title });
 	}
 
 	async function removeTranscript(idx: number) {
@@ -127,7 +137,14 @@
 
 <main class="MainContent">
 	<header class="Subhead">
-		<h1 class="Subhead-heading">Chat / { activeChat?.title || '' }</h1>
+		<h1 class="Subhead-heading">
+			{#if activeChat}
+				Chat
+				<CInput bind:value={activeChat.title} on:confirmed={saveActiveChatTitle} />
+			{:else}
+				Chats
+			{/if}
+		</h1>
 
 		<div class="Subhead-actions">
 			{#if srs}

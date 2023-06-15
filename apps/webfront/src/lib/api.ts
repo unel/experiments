@@ -102,6 +102,16 @@ const api = {
         });
     },
 
+    updateChat: async (fetchFn: FetchFN, { chatId, ...updates }): Promise<Chat> => {
+        const sChat = await fetchJSON(fetchFn, buildUrl(`/chats/${chatId}`), {
+            method: 'POST',
+            headers: defaultHeaders,
+            body: JSON.stringify(updates)
+        });
+
+        return mapChat(sChat);
+    },
+
     createMessage: async (fetchFn: FetchFN, { userId, language, chatId, text }): Promise<ChatMessage> => {
         const sMessage = await fetchJSON(fetchFn, buildUrl(`/chats/${chatId}/messages`), {
             method: 'POST',
