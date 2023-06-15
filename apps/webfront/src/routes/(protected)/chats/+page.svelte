@@ -89,7 +89,7 @@
 	}
 
 	async function createChat() {
-		const result = await api.createChat(fetch, { title: 'new chat', userId: ''});
+		const result = await api.createChat(fetch, { title: 'new chat', userId: data.user?.id || '-' });
 		data.chats.unshift({
 			...result,
 			messages: [],
@@ -139,7 +139,7 @@
 	<header class="Subhead">
 		<h1 class="Subhead-heading">
 			{#if activeChat}
-				Chat
+				Chat::
 				<CInput bind:value={activeChat.title} on:confirmed={saveActiveChatTitle} />
 			{:else}
 				Chats
