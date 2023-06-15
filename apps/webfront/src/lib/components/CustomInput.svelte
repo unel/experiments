@@ -8,6 +8,7 @@
 	export let value = ';'
 	// ----------------------------------------------
 
+	let input: HTMLInputElement;
 
 	// component logic
 	const dispatchEvent = createEventDispatcher<{
@@ -17,6 +18,7 @@
 	function processKeyPress(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
 			confirmInput();
+			input?.blur();
 		}
 	}
 
@@ -26,7 +28,7 @@
 </script>
 
 
-<input type='text' class='custom-input' bind:value={value} on:keypress={processKeyPress} on:blur={confirmInput}>
+<input type='text' class='custom-input' bind:value={value} on:keypress={processKeyPress} on:blur={confirmInput} bind:this={input}>
 
 
 <style>
