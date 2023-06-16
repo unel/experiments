@@ -1,16 +1,19 @@
 <script lang="ts">
 	// imports
+	import { onDestroy } from 'svelte';
+
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
 	import { api, type ChatMessage } from '$lib/api';
 	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from "$lib/stt";
-	import { SP, isSpeechSynthesAvailable } from '$lib/tts';
+	import { SP, isSpeechSynthesAvailable, type SpeachParams } from '$lib/tts';
 	import createSPStores from '$lib/stores/sp-store';
 
 	import Listener from '@components/Listener.svelte';
 	import CButton from '@components/ButtonWithConfirmation.svelte';
 	import CInput from '@components/CustomInput.svelte';
+	import SpConfigurator from '@components/SPConfigurator.svelte';
 	// ------------------------------------
 
 
@@ -141,6 +144,10 @@
 		sp?.speak(text);
 	}
 
+	function syncSPConfig(e: CustomEvent<SpeachParams>) {
+		sp?.applyConfig(e.detail);
+	}
+
 	type Lang = 'en' | 'ru';
 	let activeLanguage: Lang = 'en';
 	const languages: Array<Lang> = ['en', 'ru'];
@@ -176,7 +183,18 @@
 			spUnsub();
 		}
 	}
+
+	function destroy() {
+		console.log('destroying!!!');
+		sp?.destroy();
+		srs?.en.destroy();
+		srs?.ru.destroy();
+	}
+
+	onDestroy(destroy);
 </script>
+
+<svelte:window on:beforeunload={destroy} />
 
 <main class="MainContent">
 	<header class="Subhead">
@@ -191,21 +209,41 @@
 
 		<div class="Subhead-actions">
 			{#if srs}
-				<div class="BtnGroup">
-					{#each languages as language}
-						<button
-							class="BtnGroup-item btn"
-							aria-selected={language === activeLanguage}
-							on:click={() => activeLanguage = language}
-						>
-							{language}
-						</button>
-					{/each}
+				<div class="Box">
+					<div class="Box-header">Speach-to-text</div>
+					<div class="Box-body">
+						<div class="BtnGroup">
+							{#each languages as language}
+								<button
+									class="BtnGroup-item btn"
+									aria-selected={language === activeLanguage}
+									on:click={() => activeLanguage = language}
+								>
+									{language}
+								</button>
+							{/each}
+						</div>
+
+						<Listener sr={srs[activeLanguage]} on:message={updateLog} />
+					</div>
 				</div>
 
-				<Listener sr={srs[activeLanguage]} on:message={updateLog} />
 			{:else}
 				speech recongition is unavailable =(
+			{/if}
+
+			{#if sp}
+				<div class="Box">
+					<div class="Box-header">Text-to-speech</div>
+					<div class="Box-body">
+						<SpConfigurator
+							includeGroups={['en', 'fr', 'ru']}
+							includeLangs={['us', 'gb', 'ng', 'in', 'ru']}
+
+							on:config={syncSPConfig}
+						/>
+					</div>
+				</div>
 			{/if}
 		</div>
 	</header>
@@ -235,9 +273,15 @@
 
 							<div class="transcript-controls">
 								{#if sp }
-								<button class="btn-octicon" on:click={() => speakText(chatMessage.text)}>
-									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M11.553 3.064A.75.75 0 0 1 12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805a.752.752 0 0 1 .808-.13ZM10.5 5.445l-4.245 3.86a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86Zm8.218-1.223a.75.75 0 0 1 1.06 0c4.296 4.296 4.296 11.26 0 15.556a.75.75 0 0 1-1.06-1.06 9.5 9.5 0 0 0 0-13.436.75.75 0 0 1 0-1.06Z"></path><path d="M16.243 7.757a.75.75 0 1 0-1.061 1.061 4.5 4.5 0 0 1 0 6.364.75.75 0 0 0 1.06 1.06 6 6 0 0 0 0-8.485Z"></path></svg>
-								</button>
+									{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
+										<button class="btn-octicon btn-octicon-danger" on:click={() => sp.stop()}>
+											<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805A.75.75 0 0 1 12 3.75ZM6.255 9.305a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86V5.445ZM16.28 8.22a.75.75 0 1 0-1.06 1.06L17.94 12l-2.72 2.72a.75.75 0 1 0 1.06 1.06L19 13.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L20.06 12l2.72-2.72a.75.75 0 0 0-1.06-1.06L19 10.94l-2.72-2.72Z"></path></svg>
+										</button>
+									{:else}
+										<button class="btn-octicon" on:click={() => speakText(chatMessage.text)}>
+											<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M11.553 3.064A.75.75 0 0 1 12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805a.752.752 0 0 1 .808-.13ZM10.5 5.445l-4.245 3.86a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86Zm8.218-1.223a.75.75 0 0 1 1.06 0c4.296 4.296 4.296 11.26 0 15.556a.75.75 0 0 1-1.06-1.06 9.5 9.5 0 0 0 0-13.436.75.75 0 0 1 0-1.06Z"></path><path d="M16.243 7.757a.75.75 0 1 0-1.061 1.061 4.5 4.5 0 0 1 0 6.364.75.75 0 0 0 1.06 1.06 6 6 0 0 0 0-8.485Z"></path></svg>
+										</button>
+									{/if}
 								{/if}
 
 								<button class="btn-octicon btn-octicon-danger" on:click={() => removeTranscript(idx)}>
@@ -285,6 +329,18 @@
 
 		padding-left: var(--space-large);
 		padding-right: var(--space-large);
+	}
+
+	.Subhead-heading {
+		display: inline-flex;
+		flex-direction: row;
+		align-items: flex-start;
+	}
+
+	.Subhead-actions {
+		display: inline-flex;
+		flex-direction: row;
+		column-gap: var(--space);
 	}
 
 	.transcripts {
