@@ -24,7 +24,11 @@
 	const {isActive: isSPActive, talkingStatus: spTalkingStatus, resubscribe: spResub, unsubscribe: spUnsub} = createSPStores();
 
 	function updateLog(e: CustomEvent<SRResultItem>) {
-		createMessage({ language: activeLanguage, text: e.detail.transcript });
+		addMessage(e.detail.transcript, activeLanguage);
+	}
+
+	function addMessage(text: string, language = activeLanguage) {
+		createMessage({ language, text });
 	}
 
 	function navigateToChat(chatId: string) {
@@ -152,7 +156,7 @@
 		: undefined;
 
 
-	const WordMarkers = ['<{', '}>'];
+	const WordMarkers = ['<b>', '</b>'];
 	function markWord(str: string, from?: number, to?: number): string {
 		if (from === undefined || to == undefined) {
 			return str;
@@ -223,9 +227,9 @@
 
 							<div class="transcript-text">
 								{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
-								a:: {markWord(chatMessage.text, $spTalkingStatus.wordStartIndex, $spTalkingStatus.wordEndIndex)}
+								{@html markWord(chatMessage.text, $spTalkingStatus.wordStartIndex, $spTalkingStatus.wordEndIndex)}
 								{:else}
-								ia:: <CInput bind:value={chatMessage.text} on:confirmed={() => saveChatMessageText(chatMessage)} />
+								<CInput bind:value={chatMessage.text} on:confirmed={() => saveChatMessageText(chatMessage)} />
 								{/if}
 							</div>
 
@@ -243,6 +247,14 @@
 						</div>
 					</div>
 				{/each}
+
+				<div class="TimelineItem">
+					<div class="TimelineItem-badge">
+						<button class="btn" on:click={() => addMessage(' ')}>
+							+
+						</button>
+					</div>
+				</div>
 			</section>
 		</div>
 
@@ -282,10 +294,18 @@
 	}
 
 	.transcript {
+		width: 100%;
 		display: flex;
 		flex-direction: row;
-		align-items: center;
 		column-gap: var(--space)
+	}
+
+	.transcript-text {
+		flex-grow: 1;
+	}
+
+	.transcript-controls {
+		flex-shrink: 1;
 	}
 
 	.chat-item {

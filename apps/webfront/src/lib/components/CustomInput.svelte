@@ -33,6 +33,7 @@
 
 <style>
 	.custom-input {
+		width: 100%;
 		border: none;
 
 		outline-color: rgba(0, 0, 0, 0.1);
