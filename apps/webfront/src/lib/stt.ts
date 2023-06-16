@@ -12,7 +12,7 @@ export function isSpeechRecognitionAvailable(): boolean {
 
 export type SRStatus = {
 	isActive: boolean,
-	error?: Error,
+	error?: SpeechRecognitionErrorEvent,
 };
 
 export type SRResultItem = {
