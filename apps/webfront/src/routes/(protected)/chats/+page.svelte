@@ -5,6 +5,8 @@
 
 	import { api, type ChatMessage } from '$lib/api';
 	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from "$lib/stt";
+	import { SP, isSpeechSynthesAvailable } from '$lib/tts';
+	import createSPStores from '$lib/stores/sp-store';
 
 	import Listener from '@components/Listener.svelte';
 	import CButton from '@components/ButtonWithConfirmation.svelte';
@@ -19,6 +21,7 @@
 
 	// page logic
 	const dtFormatter = new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'medium' });
+	const {isActive: isSPActive, talkingStatus: spTalkingStatus, resubscribe: spResub, unsubscribe: spUnsub} = createSPStores();
 
 	function updateLog(e: CustomEvent<SRResultItem>) {
 		createMessage({ language: activeLanguage, text: e.detail.transcript });
@@ -129,10 +132,18 @@
 		await api.updateMessage(fetch, { messageId: id, chatId, text });
 	}
 
+
+	function speakText(text: string) {
+		sp?.speak(text);
+	}
+
 	type Lang = 'en' | 'ru';
 	let activeLanguage: Lang = 'en';
 	const languages: Array<Lang> = ['en', 'ru'];
 	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
+	const speechSynthesAvailable = isSpeechSynthesAvailable();
+
+	const sp = speechSynthesAvailable ? new SP({ rate: 1 }) : undefined;
 	const srs = speechRecognitionAvailable
 		? {
 			en: new SR({ language: 'en', continuous: true }),
@@ -140,9 +151,27 @@
 		}
 		: undefined;
 
+
+	const WordMarkers = ['<{', '}>'];
+	function markWord(str: string, from?: number, to?: number): string {
+		if (from === undefined || to == undefined) {
+			return str;
+		}
+
+		return str.substring(0, from) + WordMarkers[0] + str.substring(from, to + 1) + WordMarkers[1] + str.substring(to + 1);
+	}
+
 	$: currentPageUrl = $page.url;
 	$: activeChatId = currentPageUrl.hash.split(':')[1];
 	$: activeChat = data.chats?.find?.(chat => chat.id === activeChatId);
+
+	$: {
+		if (sp) {
+			spResub(sp);
+		} else {
+			spUnsub();
+		}
+	}
 </script>
 
 <main class="MainContent">
@@ -193,10 +222,20 @@
 							</div>
 
 							<div class="transcript-text">
-								<CInput bind:value={chatMessage.text} on:confirmed={() => saveChatMessageText(chatMessage)} />
+								{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
+								a:: {markWord(chatMessage.text, $spTalkingStatus.wordStartIndex, $spTalkingStatus.wordEndIndex)}
+								{:else}
+								ia:: <CInput bind:value={chatMessage.text} on:confirmed={() => saveChatMessageText(chatMessage)} />
+								{/if}
 							</div>
 
 							<div class="transcript-controls">
+								{#if sp }
+								<button class="btn-octicon" on:click={() => speakText(chatMessage.text)}>
+									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M11.553 3.064A.75.75 0 0 1 12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805a.752.752 0 0 1 .808-.13ZM10.5 5.445l-4.245 3.86a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86Zm8.218-1.223a.75.75 0 0 1 1.06 0c4.296 4.296 4.296 11.26 0 15.556a.75.75 0 0 1-1.06-1.06 9.5 9.5 0 0 0 0-13.436.75.75 0 0 1 0-1.06Z"></path><path d="M16.243 7.757a.75.75 0 1 0-1.061 1.061 4.5 4.5 0 0 1 0 6.364.75.75 0 0 0 1.06 1.06 6 6 0 0 0 0-8.485Z"></path></svg>
+								</button>
+								{/if}
+
 								<button class="btn-octicon btn-octicon-danger" on:click={() => removeTranscript(idx)}>
 									<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg>
 								</button>
