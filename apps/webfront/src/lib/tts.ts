@@ -28,16 +28,13 @@ if (isSpeechSynthesAvailable()) {
     synth.addEventListener('voiceschanged', () => syncSpeechVoices());
 }
 
-const players = [];
-
-
 type SPStatus = {
     isActive: boolean,
     error?: SpeechSynthesisErrorEvent,
 };
 
 type SpeachParamName = 'voice' | 'pitch' | 'rate' | 'volume' | 'lang';
-type SpeachParams = Partial<Pick<SpeechSynthesisUtterance, SpeachParamName>>;
+export type SpeachParams = Partial<Pick<SpeechSynthesisUtterance, SpeachParamName>>;
 
 export type SpeakingInfo = {
     elapsedTime?: number,
@@ -75,7 +72,7 @@ export function getConfigurationParameters() {
         },
         rate: {
             min: 0,
-            max: 10,
+            max: 3,
             step: 0.1,
         },
     }
@@ -104,12 +101,10 @@ export class SP {
 
             this.addStatusListener(({ isActive}) => {
                 this.isActive = isActive;
-                console.log('SP status', this.isActive);
             }),
 
             this.addSpeakingListener(speakingStatus => {
                 Object.assign(this.speakingStatus, speakingStatus);
-                console.log('SP speaking status', this.speakingStatus.word);
             }),
         ];
     }
@@ -192,6 +187,7 @@ export class SP {
     speak(text: string, speachParams?: SpeachParams) {
         this._utter.text = text;
         this._syncUtterParams(speachParams);
+        synth.cancel();
         synth.speak(this._utter);
     }
 
