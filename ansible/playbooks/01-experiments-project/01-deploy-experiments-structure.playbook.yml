@@ -31,8 +31,6 @@
         dest: "{{ project_root }}/experiments"
         version: main
         force: true
-        depth: 1
-        single_branch: true
 
     - name: Fill root secrets
       become: true
@@ -50,6 +48,7 @@
       with_items:
         - { from: "secrets/envs/webfront.env", to: "{{ project_root }}/experiments/apps/webfront/.env" }
         - { from: "secrets/envs/chatapi.env", to: "{{ project_root }}/experiments/apps/chatapi/.env" }
+        - { from: "secrets/envs/gptapi.env", to: "{{ project_root }}/experiments/apps/gptapi/.env" }
         - { from: "secrets/envs/tg.env", to: "{{ project_root }}/experiments/apps/tg/.env" }
         - { from: "secrets/envs/openai.env", to: "{{ project_root }}/experiments/apps/openai/.env" }
 

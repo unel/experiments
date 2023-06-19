@@ -9,20 +9,21 @@
   tasks:
     # all files in /run directory sets as variable in run_vars vith content of that file
     # revealed errors: empty files, no files, files with more than 1 line
-    - name: Pull "variables" from "/run" directory
-      ansible.builtin.shell: set -o pipefail && find ./ -type f -printf "%P\n" -exec cat {} \;
-      args:
-        chdir: "{{ project_root }}/run"
-      register: pull_run_result
-      changed_when: 0
+    # - name: Pull "variables" from "/run" directory
+    #   ansible.builtin.shell: set -o pipefail && find ./ -type f -printf "%P\n" -exec cat {} \;
+    #   args:
+    #     chdir: "{{ project_root }}/run"
+    #   register: pull_run_result
+    #   changed_when: 0
 
-    - name: Process "run variables"
-      ansible.builtin.set_fact:
-        run_vars: "{{ dict(pull_run_result.stdout_lines | slice(((pull_run_result.stdout_lines | length) // 2) | round)) }}"
+    # - name: Process "run variables"
+    #   ansible.builtin.set_fact:
+    #     run_vars: "{{ dict(pull_run_result.stdout_lines | slice(((pull_run_result.stdout_lines | length) // 2) | round)) }}"
 
 
     - name: Store runned servers in docker compose ps output
-      ansible.builtin.shell: set -o pipefail && docker compose ps | cut -d ' ' -f 1
+      # ansible.builtin.shell: set -o pipefail && docker compose ps | cut -d ' ' -f 1
+      ansible.builtin.shell: docker compose ps | cut -d ' ' -f 1
       args:
         chdir: "{{ compose_dir }}"
       register: mongo_stat_result
