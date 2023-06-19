@@ -29,6 +29,9 @@ services:
       - CHAT_API_NODE_PORT=${CHAT_API_NODE_PORT}
       - CHAT_API_BASEPATH=${CHAT_API_BASEPATH}
 
+      - GPT_API_NODE_PORT=${GPT_API_NODE_PORT}
+      - GPT_API_BASEPATH=${GPT_API_BASEPATH}
+
       - MONGO_ADMIN_PORT=${MONGO_ADMIN_PORT}
       - MONGO_ADMIN_BASEPATH=${MONGO_ADMIN_BASEPATH}
 
@@ -71,9 +74,27 @@ services:
       - dispatcher
       - node-mongo
 
-    # ports:
-    #   - '${WEBFRONT_NODE_PORT}:${WEBFRONT_NODE_PORT}'
-    #   - '${WEBFRONT_DEV_NODE_PORT}:${WEBFRONT_DEV_NODE_PORT}'
+  gpt-api:
+    build: './images/nodeapp'
+
+    depends_on:
+      mongo-server:
+        condition: service_healthy
+
+    entrypoint: npm run dev -- --host --port=${GPT_API_NODE_PORT}
+    working_dir: /app
+    volumes:
+      - ${APPS_DIR}/gptapi:/app
+
+    environment:
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_USERNAME=${MONGO_INITIAL_USERNAME}
+      - MONGO_PASSWORD=${MONGO_INITIAL_PASSWORD}
+      - BASEPATH=${GPT_API_BASEPATH}
+
+    networks:
+      - dispatcher
+      - node-mongo
 
   chat-api:
     build: './images/nodeapp'
