@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model GptModel {
+  id String @id @map("_id")
+
+  name String
+
+  number Int @default(0)
+
+  family String @default("")
+
+  description String @default("")
+
+  capabilities GptRequestType[] @default([])
+
+  requests GptRequest[]
+}
+
+model GptRequest {
+  id String @id @default(cuid()) @map("_id")
+
+  model   GptModel       @relation(fields: [modelId], references: [id])
+  modelId String
+  type    GptRequestType
+  payload Json
+
+  response GptResponse?
+}
+
+enum GptRequestType {
+  COMPLETION
+  CHAT_COMPLETION
+  EDIT
+}
+
+model GptResponse {
+  id String @id @default(cuid()) @map("_id")
+
+  requestId String     @unique
+  request   GptRequest @relation(fields: [requestId], references: [id])
+
+  payload Json
+}
