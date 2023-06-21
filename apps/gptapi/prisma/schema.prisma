@@ -23,7 +23,8 @@ model GptModel {
 
   capabilities GptRequestType[] @default([])
 
-  requests GptRequest[]
+  requests                  GptRequest[]
+  acceptablePromptTemplates PromptTemplate[]
 }
 
 model GptRequest {
@@ -50,4 +51,23 @@ model GptResponse {
   request   GptRequest @relation(fields: [requestId], references: [id])
 
   payload Json
+}
+
+model PromptTemplate {
+  id String @id @map("_id")
+
+  name        String @unique
+  description String @default("")
+
+  model   GptModel? @relation(fields: [modelId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  modelId String
+
+  requestType           GptRequestType
+  requestParamsTemplate Json
+  outputTemplate        String         @default("")
+
+  parentTemplateId String?
+  parentTemplate   PromptTemplate? @relation("MessageTemplateSubs", fields: [parentTemplateId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  subTemplates PromptTemplate[] @relation("MessageTemplateSubs")
 }

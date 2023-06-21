@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { PrismaClient, GptRequestType } from '@prisma/client'
+import { stripIndent } from 'common-tags';
 
 const prisma = new PrismaClient();
 
@@ -28,6 +29,67 @@ async function main() {
       where: { id },
       update: { ...modelInfo, number },
       create: { ...model, number },
+    });
+  }));
+
+
+  const promptTemplates = [
+    {
+      id: 'cmd-check',
+      name: 'check command',
+      model: {connect: {id: 'text-davinci-003'}},
+
+      requestType: GptRequestType.COMPLETION,
+      requestParamsTemplate: {
+        max_tokens: 3,
+        prompt: stripIndent`
+          Is sentence '{text}' one of a commands?
+          Name this command, or just say 'no'.
+          Commands:{commands}
+
+          Command:
+        `
+      }
+    },
+
+    {
+      id: 'q',
+      name: 'simple question',
+      model: {connect: {id: 'gpt-3.5-turbo'}},
+
+      requestType: GptRequestType.CHAT_COMPLETION,
+      requestParamsTemplate: {
+        max_tokens: 200,
+        messages: `[
+          {"role": "system", "content": "You are a supportive, but laconic assistant, not an ai."},
+          {"role": "user", "content": "{text}"}
+        ]`
+      }
+    },
+
+    {
+      id: 'gr-fix',
+      name: 'fix grammar',
+      model: {connect: {id: 'text-davinci-edit-001'}},
+
+      requestType: GptRequestType.EDIT,
+      requestParamsTemplate: {
+        instruction: "Fix all grammar and spelling mistakes",
+        input: "{text}"
+      }
+    }
+  ];
+
+  await Promise.all(promptTemplates.map((promptTemplate) => {
+    const { id, ...info } = promptTemplate;
+
+    return prisma.promptTemplate.upsert({
+      where: { id },
+      update: info,
+      create: promptTemplate,
+      include: {
+        model: true,
+      }
     });
   }));
 }
