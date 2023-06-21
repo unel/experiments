@@ -1,9 +1,12 @@
+// here used this template engine: https://github.com/tbranyen/combyne
+
 import combyne from 'combyne';
 import md5 from 'js-md5';
 
+
 combyne.settings.delimiters = {
-    START_PROP: "{",
-    END_PROP: "}"
+    START_RAW: "{",
+    END_RAW: "}"
 };
 
 const TEMPLATES = {

@@ -43,8 +43,8 @@ async function main() {
       requestParamsTemplate: {
         max_tokens: 3,
         prompt: stripIndent`
-          Is sentence '{text}' one of a commands?
-          Name this command, or just say 'no'.
+          Is sentence "{text}" one of a commands?
+          Name this command, or just say "no".
           Commands:{commands}
 
           Command:
