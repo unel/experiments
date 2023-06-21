@@ -37,6 +37,7 @@
 	"dependencies": {
 		"@prisma/client": "^4.15.0",
 		"bcryptjs": "^2.4.3",
+		"combyne": "^2.0.0",
 		"common-tags": "^1.8.2",
 		"js-md5": "^0.7.3",
 		"openai": "3.2.1"

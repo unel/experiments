@@ -60,10 +60,10 @@ async function main() {
       requestType: GptRequestType.CHAT_COMPLETION,
       requestParamsTemplate: {
         max_tokens: 200,
-        messages: `[
-          {"role": "system", "content": "You are a supportive, but laconic assistant, not an ai."},
-          {"role": "user", "content": "{text}"}
-        ]`
+        messages: [
+          {role: 'system', 'content': 'You are a supportive, but laconic assistant, not an ai.'},
+          {role: 'user', 'content': '{text}'}
+        ]
       }
     },
 

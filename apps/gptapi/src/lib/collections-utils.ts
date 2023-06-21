@@ -1,22 +1,68 @@
 import md5 from 'js-md5';
 
 import { strcmp } from '$lib/str-utils';
+import { makeKeysIterator, makeTreeIterator, makeSliceIterator } from '$lib/collections-iterators';
 
-export function flatten(item, path = []) {
+export function isObject(value: unknown): boolean {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
+}
+
+export function isArray(value: unknown): boolean {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+
+    return Array.isArray(value)
+}
+
+export function flatten(obj) {
     let elements = [];
 
-    for (const key of Object.keys(item)) {
-        const elementPath = path.concat(key);
-        const element = item[key];
-
-        if (typeof element !== 'object' || element === null) {
-            elements.push([elementPath, element]);
-        } else {
-            elements = elements.concat(flatten(element, elementPath));
-        }
+    for (const {fullValuePath, value} of makeTreeIterator(obj)) {
+        elements.push([fullValuePath, value]);
     }
 
     return elements;
+}
+
+export function setByPath(obj, path, value) {
+    let target = obj;
+
+    if (path.length < 1) {
+        return;
+    }
+
+    for (const [pathKey, nextKey] of makeSliceIterator(path, 2)) {
+        if (nextKey === undefined) {
+            target[pathKey] = value;
+            return;
+        }
+
+        if (!Object.hasOwnProperty.call(target, pathKey)) {
+            target[pathKey] = typeof nextKey === 'string' ? {} : [];
+        }
+
+        target = target[pathKey];
+    }
+}
+
+export function recMap(obj, mapFn = ({ parentKey, value }) => ({}) ) {
+    const clone = obj.constructor();
+
+    for (const iterData of makeTreeIterator(obj)) {
+        const {value, parentObj, fullParentPath, parentKey} = iterData;
+
+        const {parentKey:newKey=parentKey, value:newValue=value} = mapFn(iterData);
+
+        setByPath(clone, fullParentPath.concat(newKey), newValue);
+    }
+
+    return clone;
 }
 
 

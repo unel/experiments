@@ -2,7 +2,8 @@ import { type PromptTemplate, GptRequestType } from '@prisma/client'
 
 import { aiApi } from '$lib/aiapi';
 import { db } from '$lib/db';
-import { hash } from '$lib/collections-utils';
+import { hash, recMap } from '$lib/collections-utils';
+import { renderTemplate } from '$lib/tmpl';
 
 
 type TemplateValue = number | boolean | string | Array<TemplateValue>;
@@ -39,10 +40,7 @@ function fillTemplate(template: TemplateValue , data: Record<string, TemplateVal
         return template;
     }
 
-    const rawStr = template.replace(/{(\w+)}/g, (m, varName) => {
-        return data[varName];
-    });
-
+    const rawStr = renderTemplate(template, data);
     try {
         return JSON.parse(rawStr);
     } catch (e) {
@@ -50,33 +48,16 @@ function fillTemplate(template: TemplateValue , data: Record<string, TemplateVal
     }
 }
 
-function fillTemplates(templates: Record<string, string>, data: Record<string, TemplateValue>) {
-    return Object.fromEntries(
-        Object.entries(templates).map(([name, value]) => {
-            return [name, fillTemplate(value, data)];
-        }),
-    );
-}
+function fillTemplates(templates: Record<string, unknown>, data: Record<string, TemplateValue>) {
+    return recMap(templates, ({ value, parentKey }) => {
+        const newValue = fillTemplate(value, data);
 
-async function formCheckCommand(prompt: string): string {
-    const template = await db.promptTemplate.findUniqueOrThrow({
-        where: {
-            id: 'cmd-check'
-        }
+        return { value: newValue };
     });
-
-    const templateData = {
-        commands: ['repeat', 'explain'],
-        text: prompt,
-    };
-
-    const aiApi = formAiPromptFromTemplate(template, templateData);
-    const templateInfo = { id: template.id, data: templateData };
-
-    return { aiApi, templateInfo };
 }
 
-async function formTemplateCommand(templateId, payload) {
+
+export async function formTemplateCommand(templateId, payload) {
     const template = await db.promptTemplate.findUniqueOrThrow({where: { id: templateId }});
     const templateData = payload;
 
