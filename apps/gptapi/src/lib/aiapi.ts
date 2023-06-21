@@ -5,15 +5,15 @@
 
 import { Configuration, OpenAIApi } from 'openai';
 
-import { env } from '$env';
+import { OPENAI_API_KEY, OPENAI_API_ORGID} from '$env/static/private';
+
 
 const config = new Configuration({
-    apiKey: env.OPENAI_API_KEY,
-    organization: env.OPENAI_API_ORGID,
+    apiKey: OPENAI_API_KEY,
+    organization: OPENAI_API_ORGID,
 });
 
 const aiApi = new OpenAIApi(config);
-
 
 
 export { aiApi }
