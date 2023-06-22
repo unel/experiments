@@ -151,3 +151,65 @@ Please note that these estimations are intentionally pessimistic and are not ref
 Provide estimations (in range 0.000 - 1) of this sentence below by these categories: [Precision, Correctness, Clarity, Suitability, Adaptability, Appropriateness]. Answer should contain only compact js array with numbers.
 
 "hilow, how is u"
+
+
+
+
+To group these estimations, you can consider the following categories:
+
+Language Accuracy:
+
+Grammar Accuracy: This category assesses the correctness of grammar, including proper sentence structure, verb agreement, and proper use of punctuation.
+Clarity of Meaning: This category focuses on the clarity and precision of the message conveyed, ensuring that the intended meaning is effectively communicated.
+Expression and Style:
+
+Conciseness and Clear Expression: This category evaluates how effectively the information is conveyed using concise and clear language, avoiding unnecessary wordiness or ambiguity.
+Appropriate Style: This category considers whether the writing style aligns with the intended purpose and target audience. It involves assessing if the tone, formality, and level of detail are suitable for the context.
+Contextual Suitability:
+
+Contextual Suitability: This category examines how well the content fits within the given context, such as the topic, subject matter, or specific requirements. It involves evaluating whether the writing is relevant and appropriate for the intended purpose.
+
+
+
+
+Estimate language accuracy of sentence in range 0 - 1. Provide only number, nothing else
+
+sentence: "how are you?"
+
+
+
+
+{
+    "maxTokens": 3,
+    "systemText": "Instead answer on message, just estimate language accuracy of this message in range 0 - 1. Provide only number, nothing else",
+    "userText": "Hi! How are you?"
+}
+
+
+
+{
+    "maxTokens": 150,
+    "systemText": "Don't answer on message, just explain language accuracy estimation of this message.",
+    "userText": "HHow can I build proxy to external api based on sveltekit?"
+}
+
+Instead answer on message, just estimate language accuracy of this message in range 0 - 1. Provide only number, nothing else.\nSentence: How can I build proxy to external api based on sveltekit?
+
+
+
+
+{
+    "max_tokens": 200,
+    "messages": [
+        {"role": "system", "content": "You're english tutor"},
+        {"role": "user", "content": "Estimate grammar accuracy of this sententence in range 0 - 1. Provide number only.\nSentence: 'How can I build proxy to external api based on sveltekit?'\n"},
+        {"role": "assistant", "content": "0.75"},
+        {"role": "user", "content": "Comment all negative aspects of this estimation"},
+        {"role": "assistant", "content": "1. The sentence starts with a capital letter, which is good, but the following words are not properly capitalized.\n2. The sentence is not a complete sentence as it lacks a subject and a verb. It is a question, which is fine, but it would be better if it were rephrased to include a subject and a verb.\n3. A comma could be added after \"api\" to improve the sentence's clarity and structure.\n4. The use of \"SvelteKit\" should be capitalized according to its correct spelling convention, which is camalCase."},
+        {"role": "user", "content": "Explain in detail aspect 2"}
+    ]
+}
+
+
+{"role": "user", "content": "Clarify errors from aspect №2 regarding the sentence under consideration"}
+{"role": "user", "content": "Clarify aspect №2 regarding the sentence under consideration"}

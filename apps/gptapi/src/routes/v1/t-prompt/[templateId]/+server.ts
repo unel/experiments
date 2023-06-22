@@ -15,6 +15,7 @@ export async function GET({ url, params }) {
 
 export async function POST({ params, request }) {
 	const payload = await request.json();
+	payload['$payloadJSON'] = JSON.stringify(payload);
 	const data = await execTemplateCommand(params.templateId, payload);
 
 	return json(data);

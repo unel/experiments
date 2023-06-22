@@ -73,6 +73,16 @@ export const TEMPLATES_LIST = [
 	},
 
 	{
+		id: 'raw-chat',
+		name: 'direct chat',
+		description: 'just forward data to gpt3.5',
+		modelId: 'gpt-3.5-turbo',
+
+		requestType: GptRequestType.CHAT_COMPLETION,
+		requestParamsTemplate: '{$payloadJSON}',
+	},
+
+	{
 		id: 'direct-prompt',
 		name: 'direct prompt',
 		description: 'just forward data to text-davinci',
