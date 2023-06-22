@@ -66,8 +66,8 @@ export const TEMPLATES_LIST = [
 		requestParamsTemplate: {
 			max_tokens: '{maxTokens}',
 			messages: [
-				{ role: 'system', content: '{systemText}'},
-				{ role: 'user', content: '{userText}'},
+				{ role: 'system', content: '{systemText}' },
+				{ role: 'user', content: '{userText}' },
 			],
 		},
 	},
@@ -91,7 +91,7 @@ export const TEMPLATES_LIST = [
 		requestType: GptRequestType.COMPLETION,
 		requestParamsTemplate: {
 			max_tokens: '{maxTokens}',
-			prompt: '{prompt}'
+			prompt: '{prompt}',
 		},
 	},
 

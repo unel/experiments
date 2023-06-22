@@ -26,9 +26,10 @@ function formAiPromptFromTemplate(
 ) {
 	let methodName = apiMethodNamesByRequestType[template.requestType];
 
-	const paramsFromTemplate = typeof template.requestParamsTemplate === 'string'
-		? fillTemplate(template.requestParamsTemplate, data)
-		: fillTemplates(template.requestParamsTemplate, data)
+	const paramsFromTemplate =
+		typeof template.requestParamsTemplate === 'string'
+			? fillTemplate(template.requestParamsTemplate, data)
+			: fillTemplates(template.requestParamsTemplate, data);
 
 	const methodParams = {
 		...paramsFromTemplate,

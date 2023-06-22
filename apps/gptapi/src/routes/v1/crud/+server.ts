@@ -1,25 +1,25 @@
 import { json } from '@sveltejs/kit';
 
 export function GET() {
-    const models = [
-        'GptModel',
+	const models = [
+		'GptModel',
 
-        'GptRequest',
-        'GptResponse',
+		'GptRequest',
+		'GptResponse',
 
-        'PromptTemplate',
+		'PromptTemplate',
 
-        'ThreadTemplate',
-        'ThreadTemplateWay',
+		'ThreadTemplate',
+		'ThreadTemplateWay',
 
-        'Thread',
-        'ThreadNode',
-    ];
+		'Thread',
+		'ThreadNode',
+	];
 
-    return json({
-        models: models.map(modelName => ({
-            name: modelName,
-            url: `https://local.experiments.unl/api/gpt/v1/crud/${modelName.toLowerCase()}`
-        }))
-    });
+	return json({
+		models: models.map(modelName => ({
+			name: modelName,
+			url: `https://local.experiments.unl/api/gpt/v1/crud/${modelName.toLowerCase()}`,
+		})),
+	});
 }
