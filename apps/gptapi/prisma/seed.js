@@ -36,9 +36,10 @@ async function main() {
 
 
   await Promise.all(TEMPLATES_LIST.map(data => {
+    const { modelId, ...cleanData } = data;
     const promptTemplate = {
-      ...data,
-      model: { connect: { id: data.model } },
+      ...cleanData,
+      model: { connect: { id: modelId } },
     };
 
     const { id, ...promptTemplateUpdates } = promptTemplate;

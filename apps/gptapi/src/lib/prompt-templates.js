@@ -5,7 +5,7 @@ export const TEMPLATES_LIST = [
 	{
 		id: 'cmd-check',
 		name: 'check command',
-		model: 'text-davinci-003',
+		modelId: 'text-davinci-003',
 
 		requestType: GptRequestType.COMPLETION,
 		requestParamsTemplate: {
@@ -23,7 +23,7 @@ export const TEMPLATES_LIST = [
 	{
 		id: 'q',
 		name: 'simple question',
-		model: 'gpt-3.5-turbo',
+		modelId: 'gpt-3.5-turbo',
 
 		requestType: GptRequestType.CHAT_COMPLETION,
 		requestParamsTemplate: {
@@ -39,9 +39,54 @@ export const TEMPLATES_LIST = [
 	},
 
 	{
+		id: 'code',
+		name: 'code assist',
+		modelId: 'gpt-3.5-turbo',
+
+		requestType: GptRequestType.CHAT_COMPLETION,
+		requestParamsTemplate: {
+			max_tokens: 512, // kappa
+			messages: [
+				{
+					role: 'system',
+					content: `You are code assistant, but instead answers you should ask claryfiying questions.`,
+				},
+				{ role: 'user', content: '{text}' },
+			],
+		},
+	},
+
+	{
+		id: 'direct-chat',
+		name: 'just forward data to gpt3.5',
+		modelId: 'gpt-3.5-turbo',
+
+		requestType: GptRequestType.CHAT_COMPLETION,
+		requestParamsTemplate: {
+			max_tokens: '{maxTokens}',
+			messages: [
+				{ role: 'system', content: '{systemText}'},
+				{ role: 'user', content: '{userText}'},
+			],
+		},
+	},
+
+	{
+		id: 'direct-prompt',
+		name: 'just forward data to gpt3.5',
+		modelId: 'text-davinci-003',
+
+		requestType: GptRequestType.COMPLETION,
+		requestParamsTemplate: {
+			max_tokens: '{maxTokens}',
+			prompt: '{prompt}'
+		},
+	},
+
+	{
 		id: 'gr-fix',
 		name: 'fix grammar',
-		model: 'text-davinci-edit-001',
+		modelId: 'text-davinci-edit-001',
 
 		requestType: GptRequestType.EDIT,
 		requestParamsTemplate: {
