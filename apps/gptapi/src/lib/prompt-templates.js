@@ -58,7 +58,8 @@ export const TEMPLATES_LIST = [
 
 	{
 		id: 'direct-chat',
-		name: 'just forward data to gpt3.5',
+		name: 'direct chat',
+		description: 'just forward data to gpt3.5',
 		modelId: 'gpt-3.5-turbo',
 
 		requestType: GptRequestType.CHAT_COMPLETION,
@@ -73,7 +74,8 @@ export const TEMPLATES_LIST = [
 
 	{
 		id: 'direct-prompt',
-		name: 'just forward data to gpt3.5',
+		name: 'direct prompt',
+		description: 'just forward data to text-davinci',
 		modelId: 'text-davinci-003',
 
 		requestType: GptRequestType.COMPLETION,
