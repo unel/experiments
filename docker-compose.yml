@@ -118,7 +118,7 @@ services:
       - node-mongo
 
   mongo-server:
-    image: 'mongo:4.4.8'
+    image: 'mongo:6.0.5'
 
     entrypoint: docker-entrypoint.sh mongod --replSet rs0 --keyFile=/data/keyfiles/mongokey --port=${MONGO_PORT}
 
@@ -135,7 +135,7 @@ services:
       - node-mongo
 
     healthcheck:
-      test: mongo --port ${MONGO_PORT} --quiet --eval 'db.runCommand("ping").ok'
+      test: mongosh --port ${MONGO_PORT} --quiet --eval 'db.runCommand("ping").ok'
       interval: 10s
       timeout: 2s
       retries: 5
