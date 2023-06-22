@@ -4,7 +4,7 @@ import { aiApi } from '$lib/aiapi';
 import { db } from '$lib/db';
 import { hash, recMap } from '$lib/collections-utils';
 import { renderTemplate } from '$lib/tmpl';
-import { TEMPLATES_BY_ID } from '$lib/prompt-templates';
+import { TEMPLATES_BY_ID } from '$lib/data/prompt-templates';
 
 type TemplateValue = number | boolean | string | Array<TemplateValue>;
 
