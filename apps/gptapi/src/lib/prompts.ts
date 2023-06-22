@@ -4,6 +4,7 @@ import { aiApi } from '$lib/aiapi';
 import { db } from '$lib/db';
 import { hash, recMap } from '$lib/collections-utils';
 import { renderTemplate } from '$lib/tmpl';
+import { TEMPLATES_BY_ID } from '$lib/prompt-templates';
 
 
 type TemplateValue = number | boolean | string | Array<TemplateValue>;
@@ -57,15 +58,20 @@ function fillTemplates(templates: Record<string, unknown>, data: Record<string, 
 }
 
 
-export async function formTemplateCommand(templateId, payload) {
-    const template = await db.promptTemplate.findUniqueOrThrow({where: { id: templateId }});
-    const templateData = payload;
+export async function acquireTemplate(templateId) {
+    if (TEMPLATES_BY_ID[templateId]) {
+        return TEMPLATES_BY_ID[templateId];
+    }
 
+    return db.promptTemplate.findUniqueOrThrow({where: { id: templateId }});
+}
+
+export function formTemplateCommand(template, payload) {
     return {
-        aiApi: formAiPromptFromTemplate(template, templateData),
+        aiApi: formAiPromptFromTemplate(template, payload),
         templateInfo: {
-            id: templateId,
-            data: templateData
+            id: template.id,
+            data: payload
         },
     };
 }
@@ -117,11 +123,19 @@ export async function execCommand(cmd) {
 }
 
 
-export async function execTemplateCommand(templateId, payload) {
-    const cmd = await formTemplateCommand(templateId, payload);
+export async function execTemplateCommand(templateOrId, payload) {
+    const template = typeof templateOrId === 'string'
+        ? await acquireTemplate(templateOrId)
+        : templateOrId;
+
+
+    console.log('execTemplateCommand/template', templateOrId, template);
+
+    const cmd = formTemplateCommand(template, payload);
     const result = await execCommand(cmd);
 
     return {
+        template,
         cmd,
         result,
     };

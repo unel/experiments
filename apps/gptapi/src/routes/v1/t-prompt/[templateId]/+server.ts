@@ -1,13 +1,16 @@
 import { json } from '@sveltejs/kit';
 
-import { execTemplateCommand, formTemplateCommand } from '$lib/prompts';
+import { execTemplateCommand, formTemplateCommand, acquireTemplate } from '$lib/prompts';
 
 export async function GET({ url, params }) {
     const payload = Object.fromEntries(url.searchParams.entries());
+    const template = await acquireTemplate(params.templateId);
+    const data = await formTemplateCommand(template, payload);
 
-    const data = await formTemplateCommand(params.templateId, payload);
-
-    return json(data);
+    return json({
+        template,
+        ...data,
+    });
 }
 
 
