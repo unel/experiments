@@ -1,4 +1,4 @@
-import { GptRequestType } from '@prisma/client'
+import { GptRequestType } from '@prisma/client';
 import { stripIndent } from 'common-tags';
 
 export const TEMPLATES_LIST = [
@@ -16,7 +16,7 @@ export const TEMPLATES_LIST = [
 				Commands:{commands}
 
 				Command:
-			`
+			`,
 		},
 	},
 
@@ -29,10 +29,13 @@ export const TEMPLATES_LIST = [
 		requestParamsTemplate: {
 			max_tokens: 200,
 			messages: [
-				{ role: 'system', content: 'You are a supportive, but laconic assistant, not an ai.' },
-				{ role: 'user', content: '{text}' }
-			]
-		}
+				{
+					role: 'system',
+					content: 'You are a supportive, but laconic assistant, not an ai.',
+				},
+				{ role: 'user', content: '{text}' },
+			],
+		},
 	},
 
 	{
@@ -43,9 +46,9 @@ export const TEMPLATES_LIST = [
 		requestType: GptRequestType.EDIT,
 		requestParamsTemplate: {
 			instruction: 'Fix all grammar and spelling mistakes',
-			input: '{text}'
-		}
-	}
+			input: '{text}',
+		},
+	},
 ];
 
 export const TEMPLATES_BY_ID = {};
