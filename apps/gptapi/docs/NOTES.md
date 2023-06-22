@@ -157,17 +157,17 @@ Provide estimations (in range 0.000 - 1) of this sentence below by these categor
 
 To group these estimations, you can consider the following categories:
 
-Language Accuracy:
-
-Grammar Accuracy: This category assesses the correctness of grammar, including proper sentence structure, verb agreement, and proper use of punctuation.
-Clarity of Meaning: This category focuses on the clarity and precision of the message conveyed, ensuring that the intended meaning is effectively communicated.
+*Language Accuracy*:
+- Grammar Accuracy: This category assesses the correctness of grammar, including proper sentence structure, verb agreement, and proper use of punctuation.
+- Clarity of Meaning: This category focuses on the clarity and precision of the message conveyed, ensuring that the intended meaning is effectively communicated.
 Expression and Style:
 
-Conciseness and Clear Expression: This category evaluates how effectively the information is conveyed using concise and clear language, avoiding unnecessary wordiness or ambiguity.
-Appropriate Style: This category considers whether the writing style aligns with the intended purpose and target audience. It involves assessing if the tone, formality, and level of detail are suitable for the context.
-Contextual Suitability:
+*Expression and Style*:
+- Conciseness and Clear Expression: This category evaluates how effectively the information is conveyed using concise and clear language, avoiding unnecessary wordiness or ambiguity.
+- Appropriate Style: This category considers whether the writing style aligns with the intended purpose and target audience. It involves assessing if the tone, formality, and level of detail are suitable for the context.
 
-Contextual Suitability: This category examines how well the content fits within the given context, such as the topic, subject matter, or specific requirements. It involves evaluating whether the writing is relevant and appropriate for the intended purpose.
+*Contextual Suitability*:
+- Contextual Suitability: This category examines how well the content fits within the given context, such as the topic, subject matter, or specific requirements. It involves evaluating whether the writing is relevant and appropriate for the intended purpose.
 
 
 

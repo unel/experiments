@@ -74,7 +74,7 @@ export const TEMPLATES_LIST = [
 
 	{
 		id: 'raw-chat',
-		name: 'direct chat',
+		name: 'raw chat',
 		description: 'just forward data to gpt3.5',
 		modelId: 'gpt-3.5-turbo',
 

@@ -11,7 +11,7 @@ datasource db {
 }
 
 model GptModel {
-  id String @id @map("_id")
+  id String @id @default(cuid()) @map("_id")
 
   name String
 
@@ -54,7 +54,7 @@ model GptResponse {
 }
 
 model PromptTemplate {
-  id String @id @map("_id")
+  id String @id @default(cuid()) @map("_id")
 
   name        String @unique
   description String @default("")
@@ -64,10 +64,58 @@ model PromptTemplate {
 
   requestType           GptRequestType
   requestParamsTemplate Json
-  outputTemplate        String         @default("")
 
-  parentTemplateId String?
-  parentTemplate   PromptTemplate? @relation("MessageTemplateSubs", fields: [parentTemplateId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  threadTemplateWays ThreadTemplateWay[]
+}
 
-  subTemplates PromptTemplate[] @relation("MessageTemplateSubs")
+model ThreadTemplate {
+  id   String @id @default(cuid()) @map("_id")
+  name String @unique
+
+  childWays     ThreadTemplateWay[]
+  initialParams Json
+}
+
+model ThreadTemplateWay {
+  id   String @id @default(cuid()) @map("_id")
+  name String @unique
+
+  threadTemplateId String?
+  threadTemplate   ThreadTemplate? @relation(fields: [threadTemplateId], references: [id])
+
+  parentWayId String?
+  parentWay   ThreadTemplateWay?  @relation("pcWays", fields: [parentWayId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  nextWays    ThreadTemplateWay[] @relation("pcWays")
+
+  autoExpand    Boolean @default(false)
+  expandParams  Json?
+  threadParams  Json?
+  requestParams Json?
+
+  promptTemplateId String
+  promptTemplate   PromptTemplate @relation(fields: [promptTemplateId], references: [id])
+}
+
+model Thread {
+  id    String @id @default(cuid()) @map("_id")
+  title String @unique
+
+  childNodes ThreadNode[]
+}
+
+model ThreadNode {
+  id String @id @default(cuid()) @map("_id")
+
+  thread   Thread? @relation(fields: [threadId], references: [id])
+  threadId String?
+
+  parentNodeId String?
+  parentNode   ThreadNode?  @relation("pcNodes", fields: [parentNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  childNodes   ThreadNode[] @relation("pcNodes")
+
+  threadWayId String?
+
+  dateId  DateTime
+  user    String
+  message String
 }
