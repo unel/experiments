@@ -2,120 +2,126 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
 }
 
 model GptModel {
-  id String @id @default(cuid()) @map("_id")
+    id String @id @default(cuid()) @map("_id")
 
-  name String
+    name String
 
-  number Int @default(0)
+    number Int @default(0)
 
-  family String @default("")
+    family String @default("")
 
-  description String @default("")
+    description String @default("")
 
-  capabilities GptRequestType[] @default([])
+    capabilities GptRequestType[] @default([])
 
-  requests                  GptRequest[]
-  acceptablePromptTemplates PromptTemplate[]
+    requests                  GptRequest[]
+    acceptablePromptTemplates PromptTemplate[]
 }
 
 model GptRequest {
-  id String @id @default(cuid()) @map("_id")
+    id String @id @default(cuid()) @map("_id")
 
-  model   GptModel       @relation(fields: [modelId], references: [id])
-  modelId String
-  type    GptRequestType
-  payload Json
+    createTime DateTime @default(now())
 
-  response GptResponse?
+    model   GptModel       @relation(fields: [modelId], references: [id])
+    modelId String
+    type    GptRequestType
+    payload Json
+
+    response GptResponse?
 }
 
 enum GptRequestType {
-  COMPLETION
-  CHAT_COMPLETION
-  EDIT
+    COMPLETION
+    CHAT_COMPLETION
+    EDIT
 }
 
 model GptResponse {
-  id String @id @default(cuid()) @map("_id")
+    id String @id @default(cuid()) @map("_id")
 
-  requestId String     @unique
-  request   GptRequest @relation(fields: [requestId], references: [id])
+    createTime DateTime @default(now())
 
-  payload Json
+    requestId String     @unique
+    request   GptRequest @relation(fields: [requestId], references: [id])
+
+    payload Json
 }
 
 model PromptTemplate {
-  id String @id @default(cuid()) @map("_id")
+    id String @id @default(cuid()) @map("_id")
 
-  name        String @unique
-  description String @default("")
+    name        String @unique
+    description String @default("")
 
-  model   GptModel? @relation(fields: [modelId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  modelId String
+    model   GptModel? @relation(fields: [modelId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    modelId String
 
-  requestType           GptRequestType
-  requestParamsTemplate Json
+    requestType           GptRequestType
+    requestParamsTemplate Json
 
-  threadTemplateWays ThreadTemplateWay[]
+    threadTemplateWays ThreadTemplateWay[]
 }
 
 model ThreadTemplate {
-  id   String @id @default(cuid()) @map("_id")
-  name String @unique
+    id   String @id @default(cuid()) @map("_id")
+    name String @default("")
 
-  childWays     ThreadTemplateWay[]
-  initialParams Json
+    rootWayId String            @unique
+    rootWay   ThreadTemplateWay @relation(fields: [rootWayId], references: [id])
+
+    initialParams Json
 }
 
 model ThreadTemplateWay {
-  id   String @id @default(cuid()) @map("_id")
-  name String @unique
+    id   String @id @default(cuid()) @map("_id")
+    name String @unique
 
-  threadTemplateId String?
-  threadTemplate   ThreadTemplate? @relation(fields: [threadTemplateId], references: [id])
+    parentWayId String?
+    parentWay   ThreadTemplateWay?  @relation("pcWays", fields: [parentWayId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    nextWays    ThreadTemplateWay[] @relation("pcWays")
 
-  parentWayId String?
-  parentWay   ThreadTemplateWay?  @relation("pcWays", fields: [parentWayId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  nextWays    ThreadTemplateWay[] @relation("pcWays")
+    autoExpand    Boolean @default(false)
+    threadParams  Json?
+    requestParams Json?
 
-  autoExpand    Boolean @default(false)
-  expandParams  Json?
-  threadParams  Json?
-  requestParams Json?
+    promptTemplateId String
+    promptTemplate   PromptTemplate @relation(fields: [promptTemplateId], references: [id])
 
-  promptTemplateId String
-  promptTemplate   PromptTemplate @relation(fields: [promptTemplateId], references: [id])
+    threadTemplate ThreadTemplate?
 }
 
 model Thread {
-  id    String @id @default(cuid()) @map("_id")
-  title String @unique
+    id    String @id @default(cuid()) @map("_id")
+    title String @default("")
 
-  childNodes ThreadNode[]
+    threadParams Json
+    nodes        ThreadNode[]
 }
 
 model ThreadNode {
-  id String @id @default(cuid()) @map("_id")
+    id String @id @default(cuid()) @map("_id")
 
-  thread   Thread? @relation(fields: [threadId], references: [id])
-  threadId String?
+    threadId String
+    thread   Thread @relation(fields: [threadId], references: [id])
 
-  parentNodeId String?
-  parentNode   ThreadNode?  @relation("pcNodes", fields: [parentNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  childNodes   ThreadNode[] @relation("pcNodes")
+    parentNodeId String?
+    parentNode   ThreadNode?  @relation("pcNodes", fields: [parentNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    childNodes   ThreadNode[] @relation("pcNodes")
 
-  threadWayId String?
+    threadWayId  String?
+    threadParams Json
 
-  dateId  DateTime
-  user    String
-  message String
+    messageText      String
+    messageUser      String
+    messageTimestamp DateTime @default(now())
 }

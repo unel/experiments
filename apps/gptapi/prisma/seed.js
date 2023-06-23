@@ -30,8 +30,7 @@ async function ensureData(className, data) {
 	let query = id ? { id } : { name: createData.name };
 	const entityName = lcFirst(className);
 
-	// console.log('ensure', className, data);
-
+	console.log('ensure', className, data);
 	return prisma[entityName].upsert({
 		where: query,
 		update: updateData,

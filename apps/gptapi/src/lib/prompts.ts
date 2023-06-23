@@ -42,7 +42,10 @@ function formAiPromptFromTemplate(
 	};
 }
 
-function fillTemplate(template: TemplateValue, data: Record<string, TemplateValue>): TemplateValue {
+export function fillTemplate(
+	template: TemplateValue,
+	data: Record<string, TemplateValue>,
+): TemplateValue {
 	if (typeof template !== 'string') {
 		return template;
 	}
@@ -55,8 +58,11 @@ function fillTemplate(template: TemplateValue, data: Record<string, TemplateValu
 	}
 }
 
-function fillTemplates(templates: Record<string, unknown>, data: Record<string, TemplateValue>) {
-	return recMap(templates, ({ value, parentKey }) => {
+export function fillTemplates(
+	templates: Record<string, unknown>,
+	data: Record<string, TemplateValue>,
+) {
+	return recMap(templates, ({ value }) => {
 		const newValue = fillTemplate(value, data);
 
 		return { value: newValue };
@@ -81,6 +87,9 @@ export function formTemplateCommand(template, payload) {
 	};
 }
 
+function extractMessage(gptResponse) {
+	return gptResponse.choices[0].message;
+}
 export async function execCommand(cmd) {
 	console.log('execCommand', cmd);
 	const cmdHash = hash(cmd.aiApi);
@@ -97,7 +106,7 @@ export async function execCommand(cmd) {
 
 	if (cachedRequest) {
 		console.log('execCommand/cache exists', cachedRequest.response);
-		return cachedRequest.response.payload;
+		return extractMessage(cachedRequest.response.payload);
 	}
 
 	console.log('execCommand/call api..');
@@ -124,7 +133,7 @@ export async function execCommand(cmd) {
 		console.error('execCommand/caching error', e);
 	}
 
-	return response.data;
+	return extractMessage(response);
 }
 
 export async function execTemplateCommand(templateOrId, payload) {

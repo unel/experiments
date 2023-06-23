@@ -57,6 +57,18 @@ export function setByPath(obj, path, value) {
 	}
 }
 
+export function mergeObjects(objects = []) {
+	const target = {};
+
+	for (const obj of objects) {
+		for (const { fullValuePath, value } of makeTreeIterator(obj)) {
+			setByPath(target, fullValuePath, value);
+		}
+	}
+
+	return target;
+}
+
 export function recMap(obj, mapFn = ({ parentKey, value }) => ({})) {
 	const clone = obj.constructor();
 

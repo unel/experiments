@@ -30,7 +30,7 @@ export function* makeTreeIterator(rootObj, parentObj = rootObj, fullParentPath =
 		const fullValuePath = fullParentPath.concat([parentKey]);
 		const value = parentObj[parentKey];
 
-		if (isObject(value) || isArray(value)) {
+		if ((isObject(value) || isArray(value)) && Object.keys(value).length) {
 			yield* makeTreeIterator(rootObj, value, fullValuePath);
 		} else {
 			yield {
