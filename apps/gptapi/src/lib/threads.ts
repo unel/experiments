@@ -139,7 +139,7 @@ async function joinThreadTemplateWays(rootWay, where = {}) {
 }
 
 async function joinThreadNodes(thread, rootNode = null, where = {}) {
-	const childNodes = db.threadNode.findMany({
+	const childNodes = await db.threadNode.findMany({
 		where: {
 			...where,
 			threadId: thread.id,
@@ -180,7 +180,7 @@ async function expandThreadWays(thread) {
 	}
 }
 
-async function expandThread(thread) {
+export async function expandThread(thread) {
 	await joinThreadNodes(thread);
 	await expandThreadWays(thread);
 }
