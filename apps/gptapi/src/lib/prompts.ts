@@ -87,8 +87,8 @@ export function formTemplateCommand(template, payload) {
 	};
 }
 
-function extractMessage(gptResponse) {
-	return gptResponse.choices[0].message;
+function extractMessage(gptResponseData) {
+	return gptResponseData.choices[0].message;
 }
 export async function execCommand(cmd) {
 	console.log('execCommand', cmd);
@@ -133,7 +133,7 @@ export async function execCommand(cmd) {
 		console.error('execCommand/caching error', e);
 	}
 
-	return extractMessage(response);
+	return extractMessage(response.data);
 }
 
 export async function execTemplateCommand(templateOrId, payload) {
