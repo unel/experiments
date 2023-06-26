@@ -1,6 +1,4 @@
 // imports
-import { json } from '@sveltejs/kit';
-
 import { db } from '$lib/db';
 import { connectEntity } from '$lib/db-utils';
 import { mergeObjects } from '$lib/collections-utils';
@@ -10,9 +8,18 @@ import { renderTemplate } from '$lib/tmpl';
 // --
 
 async function getPossibleNodeWays(threadNode) {
+	if (!threadNode.childNodes) {
+		threadNode.childNodes = await db.threadNode.findMany({
+			parentNodeId: threadNode.id,
+		});
+	}
+
 	return db.threadTemplateWay.findMany({
 		where: {
 			parentWayId: threadNode.threadWayId,
+			id: {
+				notIn: threadNode.childNodes.map(child => child.threadWayId),
+			},
 		},
 	});
 }
@@ -24,11 +31,11 @@ async function getNodeAncestors(parentNode = null, oldsFirst = true) {
 	while (target) {
 		ancestors.push(target);
 
-		if (!taget.parentNodeId) {
+		if (!target.parentNodeId) {
 			break;
 		}
 
-		target = await db.threadNode.findUnique({ where: { id: taget.parentNodeId } });
+		target = await db.threadNode.findUnique({ where: { id: target.parentNodeId } });
 	}
 
 	if (oldsFirst) {
@@ -38,13 +45,15 @@ async function getNodeAncestors(parentNode = null, oldsFirst = true) {
 	return ancestors;
 }
 
-async function acceptWay({
+export async function acceptWay({
 	thread,
 	parentNode = null,
 
 	threadWay,
 	threadParams = {},
 }) {
+	console.log('acceptWay', threadWay);
+
 	const alreadyExist = await db.threadNode.findMany({
 		where: {
 			threadId: thread.id,
@@ -53,11 +62,14 @@ async function acceptWay({
 	});
 
 	if (alreadyExist.length) {
-		return json({ ok: false, alreadyExist });
+		console.log('already exists');
+
+		return { ok: false, alreadyExist };
 	}
 
 	const nodeAncestors = await getNodeAncestors(parentNode);
 	const threadNodeRQData = {
+		parentNode: parentNode ? connectEntity(parentNode.id) : null,
 		thread: connectEntity(thread.id),
 		threadWayId: threadWay.id,
 		threadParams,
@@ -75,11 +87,11 @@ async function acceptWay({
 				...(thread.threadParams['+threadMessages'] || []),
 
 				...nodeAncestors.flatMap(a => [
-					a.threadParams['+threadMessages'] || [],
+					...(a.threadParams['+threadMessages'] || []),
 					{
 						date: a.messageTimestamp,
 						user: a.messageUser,
-						message: a.messageText,
+						text: a.messageText,
 					},
 				]),
 
@@ -99,25 +111,29 @@ async function acceptWay({
 	threadNodeRQData.messageUser = wayParams.message.user;
 
 	const threadNodeRQ = await db.threadNode.create({ data: threadNodeRQData });
+	console.log('acceptWay/request message created', threadNodeRQ);
 
 	if (threadWay.promptTemplate) {
+		console.log('acceptWay/promptTemplate exist');
+		const templateCommand = formTemplateCommand(
+			threadWay.promptTemplate,
+			mergeObjects([baseParams, wayParams]),
+		);
+		console.log('acceptWay/command', templateCommand);
+		const commandResult = await execCommand(templateCommand);
+		console.log('acceptWay/command result', commandResult);
+
 		const threadNodeRPData = {
 			thread: connectEntity(thread.id),
 			threadWayId: threadWay.id,
 			parentNode: connectEntity(threadNodeRQ.id),
 			threadParams: {},
+			messageUser: commandResult.role,
+			messageText: commandResult.content,
 		};
 
-		const templateCommand = formTemplateCommand(
-			threadWay.promptTemplate,
-			mergeObjects([baseParams, wayParams]),
-		);
-		const commandResult = await execCommand(templateCommand);
-
-		threadNodeRPData.messageUser = commandResult.role;
-		threadNodeRPData.messageText = commandResult.content;
-
-		await db.threadNode.create({ data: threadNodeRPData });
+		const threadNodeRP = await db.threadNode.create({ data: threadNodeRPData });
+		console.log('acceptWay/reply node created', threadNodeRP);
 	}
 
 	return threadNodeRQ;
@@ -139,13 +155,18 @@ async function joinThreadTemplateWays(rootWay, where = {}) {
 }
 
 async function joinThreadNodes(thread, rootNode = null, where = {}) {
-	const childNodes = await db.threadNode.findMany({
-		where: {
-			...where,
-			threadId: thread.id,
-			parentNode: rootNode,
-		},
-	});
+	const childWhere = {
+		...where,
+		threadId: thread.id,
+	};
+
+	if (rootNode) {
+		childWhere.parentNodeId = rootNode.id;
+	} else {
+		childWhere.parentNode = null;
+	}
+
+	const childNodes = await db.threadNode.findMany({ where: childWhere });
 
 	if (rootNode) {
 		rootNode.childNodes = childNodes;
@@ -174,8 +195,8 @@ async function expandThreadWays(thread) {
 		}
 
 		await joinPossibleNodeWays(target);
-		if (target.childNodes.length) {
-			queue.push(...taget.childNodes);
+		if (target.childNodes?.length) {
+			queue.push(...target.childNodes);
 		}
 	}
 }
@@ -214,9 +235,7 @@ export async function createThread(params) {
 		thread,
 		parentNode: null,
 
-		threadTemplate: threadTemplate,
 		threadWay: threadTemplate.rootWay,
-
 		threadParams,
 	});
 

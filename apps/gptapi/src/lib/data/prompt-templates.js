@@ -11,9 +11,9 @@ export const TEMPLATES_LIST = [
 		requestParamsTemplate: {
 			max_tokens: 3,
 			prompt: stripIndent`
-				Is sentence "{text}" one of a commands?
+				Is sentence "{{text}}" one of a commands?
 				Name this command, or just say "no".
-				Commands:{commands}
+				Commands:{{commands}}
 
 				Command:
 			`,
@@ -33,7 +33,7 @@ export const TEMPLATES_LIST = [
 					role: 'system',
 					content: 'You are a supportive, but laconic assistant, not an ai.',
 				},
-				{ role: 'user', content: '{text}' },
+				{ role: 'user', content: '{{text}}' },
 			],
 		},
 	},
@@ -51,7 +51,7 @@ export const TEMPLATES_LIST = [
 					role: 'system',
 					content: `You are code assistant, but instead answers you should ask claryfiying questions.`,
 				},
-				{ role: 'user', content: '{text}' },
+				{ role: 'user', content: '{{text}}' },
 			],
 		},
 	},
@@ -66,8 +66,8 @@ export const TEMPLATES_LIST = [
 		requestParamsTemplate: {
 			max_tokens: '{maxTokens}',
 			messages: [
-				{ role: 'system', content: '{systemText}' },
-				{ role: 'user', content: '{userText}' },
+				{ role: 'system', content: '{{systemText}}' },
+				{ role: 'user', content: '{{userText}}' },
 			],
 		},
 	},
@@ -79,7 +79,7 @@ export const TEMPLATES_LIST = [
 		modelId: 'gpt-3.5-turbo',
 
 		requestType: GptRequestType.CHAT_COMPLETION,
-		requestParamsTemplate: '{$payloadJSON}',
+		requestParamsTemplate: '{{$payloadJSON}}',
 	},
 
 	{
@@ -90,8 +90,8 @@ export const TEMPLATES_LIST = [
 
 		requestType: GptRequestType.COMPLETION,
 		requestParamsTemplate: {
-			max_tokens: '{maxTokens}',
-			prompt: '{prompt}',
+			max_tokens: '{{maxTokens}}',
+			prompt: '{{prompt}}',
 		},
 	},
 
@@ -103,7 +103,7 @@ export const TEMPLATES_LIST = [
 		requestType: GptRequestType.EDIT,
 		requestParamsTemplate: {
 			instruction: 'Fix all grammar and spelling mistakes',
-			input: '{text}',
+			input: '{{text}}',
 		},
 	},
 ];
