@@ -211,7 +211,7 @@ async function acceptRootWay(thread) {}
 async function acceptAutoexpandableWays(thread) {}
 
 export async function createThread(params) {
-	const { title, templateId, sentence, threadParams = {} } = params;
+	const { title, templateId, threadParams = {} } = params;
 
 	const threadTemplate = await db.threadTemplate.findUniqueOrThrow({
 		where: { id: templateId },
@@ -224,7 +224,7 @@ export async function createThread(params) {
 
 	const threadData = {
 		title,
-		threadParams: mergeObjects([threadTemplate.initialParams, threadParams, { sentence }]),
+		threadParams: mergeObjects([threadTemplate.initialParams, threadParams]),
 	};
 
 	const thread = await db.thread.create({

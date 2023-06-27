@@ -21,7 +21,7 @@ export const PROMPT_TEMPLATES_LIST = [
 	},
 ];
 
-const twIdSQ = 'tw-ts/sentence-quality';
+const twIdSQ = 'tw-ts/text-quality';
 
 const ASPECTS = [
 	'grammar accuracy',
@@ -33,21 +33,21 @@ const ASPECTS = [
 export const THREAD_WAYS_LIST = [
 	{
 		id: twIdSQ,
-		name: 'sequence quality',
+		name: 'text quality',
 
 		promptTemplateId: ptIdTM,
 		autoExpand: true,
 		threadParams: {
 			maxTokens: 3,
 			message:
-				"Estimate sentence quality in range 0 - 1. Provide number only. Sentence: '{{sentence}}'",
+				"Estimate sentence quality in range 0 - 1. Provide number only. Text: '{{text}}'",
 		},
 	},
 
 	...ASPECTS.flatMap(aspect => [
 		{
-			id: `tw-sentence-aspect/${aspect}-etimate`,
-			name: `${aspect} sentence aspect estimation`,
+			id: `tw-text-aspect/${aspect}-etimate`,
+			name: `${aspect} aspect estimation`,
 
 			parentWayId: twIdSQ,
 
@@ -56,15 +56,15 @@ export const THREAD_WAYS_LIST = [
 			threadParams: {
 				maxTokens: 3,
 				sentenceAspect: aspect,
-				message: `Estimate ${aspect} of this sentence in range 0 - 1. Provide only number, nothing else`,
+				message: `Estimate ${aspect} of this text in range 0 - 1. Provide only number, nothing else`,
 			},
 		},
 
 		{
-			id: `tw-sentence-aspect/${aspect}-explain`,
-			name: `${aspect} sentence aspect explain`,
+			id: `tw-text-aspect/${aspect}-explain`,
+			name: `${aspect} text aspect explain`,
 
-			parentWayId: `tw-sentence-aspect/${aspect}-etimate`,
+			parentWayId: `tw-text-aspect/${aspect}-etimate`,
 
 			promptTemplateId: ptIdTM,
 
@@ -75,7 +75,7 @@ export const THREAD_WAYS_LIST = [
 
 		{
 			name: `clarify ${aspect} errors`,
-			parentWayId: `tw-sentence-aspect/${aspect}-explain`,
+			parentWayId: `tw-text-aspect/${aspect}-explain`,
 
 			promptTemplateId: ptIdTM,
 
@@ -85,17 +85,17 @@ export const THREAD_WAYS_LIST = [
 
 			threadParams: {
 				message:
-					'Clarify errors from punct №{{threadParams.expainingPunctNumber}} regarding the sentence under consideration',
+					'Clarify errors from punct №{{threadParams.expainingPunctNumber}} regarding the text under consideration',
 			},
 		},
 	]),
 ];
 
-const ttIdTS = 'tt-teacher/sentence';
+const ttIdTS = 'tt-teacher/text';
 export const THREAD_TEMPLATES_LIST = [
 	{
 		id: ttIdTS,
-		name: 'Sentence examination',
+		name: 'Text examination',
 		initialParams: {
 			'maxTokens': 5,
 			'+threadMessages': [{ user: 'system', text: "You're kind english teacher" }],
