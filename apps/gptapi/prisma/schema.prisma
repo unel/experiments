@@ -118,8 +118,9 @@ model ThreadNode {
     parentNode   ThreadNode?  @relation("pcNodes", fields: [parentNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     childNodes   ThreadNode[] @relation("pcNodes")
 
-    threadWayId  String?
-    threadParams Json
+    excludeThreadWayId String?
+    threadWayId        String?
+    threadParams       Json
 
     messageText      String
     messageUser      String

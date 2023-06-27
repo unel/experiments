@@ -18,7 +18,7 @@ async function getPossibleNodeWays(threadNode) {
 		where: {
 			parentWayId: threadNode.threadWayId,
 			id: {
-				notIn: threadNode.childNodes.map(child => child.threadWayId),
+				notIn: threadNode.childNodes.map(child => child.excludeThreadWayId).filter(Boolean),
 			},
 		},
 	});
@@ -69,9 +69,9 @@ export async function acceptWay({
 
 	const nodeAncestors = await getNodeAncestors(parentNode);
 	const threadNodeRQData = {
-		parentNode: parentNode ? connectEntity(parentNode.id) : null,
+		parentNode: parentNode ? connectEntity(parentNode.id) : undefined,
 		thread: connectEntity(thread.id),
-		threadWayId: threadWay.id,
+		excludeThreadWayId: threadWay.id,
 		threadParams,
 	};
 
