@@ -10,7 +10,6 @@
 
 <style>
 	.thread {
-		border: 1px solid red;
-		padding: var(--space);
+		padding: var(--space-sm) var(--space) var(--space-sm) 0;
 	}
 </style>

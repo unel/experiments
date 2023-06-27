@@ -457,9 +457,10 @@
 	}
 
 	.thread-box {
-		border: 1px dashed lime;
 		position: absolute;
-		background-color: white;
+		background-color: rgba(250, 250, 250);
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		box-shadow: 8px 12px 8px 2px rgba(0, 0, 0, 0.4);
 		max-width: 600px;
 
 		overflow-x: hidden;

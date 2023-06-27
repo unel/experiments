@@ -187,7 +187,7 @@
 	}
 
 	.children {
-		border-left: 1px solid rgba(0, 0, 0, 0.08);
+		border-left: 1px solid rgba(0, 0, 0, 0.04);
 		margin-left: var(--space-sm);
 		padding-left: var(--space-sm);
 	}
