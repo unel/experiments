@@ -23,7 +23,7 @@ export async function GET({ params }) {
 }
 
 // update entity by id or name
-export async function POST() {
+export async function POST({ params }) {
 	const tableName = getTableName(params);
 	if (!tableName || !db[tableName]) {
 		console.log('misskey', params, tableName, Object.keys(db));
@@ -40,14 +40,14 @@ export async function POST() {
 }
 
 // delete entity by id or name
-export async function DELETE() {
+export async function DELETE({ params }) {
 	const tableName = getTableName(params);
 	if (!tableName || !db[tableName]) {
 		console.log('misskey', params, tableName, Object.keys(db));
 		return new Response();
 	}
 
-	await db.chat.delete({
+	await db[tableName].delete({
 		where: {
 			id: params.entityId,
 		},
