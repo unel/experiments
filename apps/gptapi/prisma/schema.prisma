@@ -83,8 +83,9 @@ model ThreadTemplate {
 }
 
 model ThreadTemplateWay {
-    id   String @id @default(cuid()) @map("_id")
-    name String @unique
+    id    String @id @default(cuid()) @map("_id")
+    name  String @unique
+    title String @default("")
 
     parentWayId String?
     parentWay   ThreadTemplateWay?  @relation("pcWays", fields: [parentWayId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -109,7 +110,8 @@ model Thread {
 }
 
 model ThreadNode {
-    id String @id @default(cuid()) @map("_id")
+    id    String @id @default(cuid()) @map("_id")
+    title String @default("")
 
     threadId String
     thread   Thread @relation(fields: [threadId], references: [id])

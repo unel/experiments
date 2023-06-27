@@ -10,7 +10,7 @@ import { renderTemplate } from '$lib/tmpl';
 async function getPossibleNodeWays(threadNode) {
 	if (!threadNode.childNodes) {
 		threadNode.childNodes = await db.threadNode.findMany({
-			parentNodeId: threadNode.id,
+			where: { parentNodeId: threadNode.id },
 		});
 	}
 
@@ -24,7 +24,7 @@ async function getPossibleNodeWays(threadNode) {
 	});
 }
 
-async function getNodeAncestors(parentNode = null, oldsFirst = true) {
+async function getNodeAncestors(parentNode, oldsFirst = true) {
 	const ancestors = [];
 	let target = parentNode;
 
@@ -43,6 +43,28 @@ async function getNodeAncestors(parentNode = null, oldsFirst = true) {
 	}
 
 	return ancestors;
+}
+
+export async function getThreadNodeMessages({ threadId, nodeId }) {
+	const [thread, threadNode] = await Promise.all([
+		db.thread.findUniqueOrThrow({ where: { id: threadId } }),
+		db.threadNode.findUniqueOrThrow({ where: { id: nodeId } }),
+	]);
+
+	const nodeAncestors = await getNodeAncestors(threadNode);
+
+	return [
+		...(thread.threadParams['+threadMessages'] || []),
+
+		...nodeAncestors.flatMap(a => [
+			...(a.threadParams['+threadMessages'] || []),
+			{
+				date: a.messageTimestamp,
+				user: a.messageUser,
+				text: a.messageText,
+			},
+		]),
+	];
 }
 
 export async function acceptWay({
@@ -72,6 +94,7 @@ export async function acceptWay({
 		parentNode: parentNode ? connectEntity(parentNode.id) : undefined,
 		thread: connectEntity(thread.id),
 		excludeThreadWayId: threadWay.id,
+		title: threadWay.title,
 		threadParams,
 	};
 
@@ -125,6 +148,7 @@ export async function acceptWay({
 
 		const threadNodeRPData = {
 			thread: connectEntity(thread.id),
+			title: 'answer',
 			threadWayId: threadWay.id,
 			parentNode: connectEntity(threadNodeRQ.id),
 			threadParams: {},
@@ -134,8 +158,11 @@ export async function acceptWay({
 
 		const threadNodeRP = await db.threadNode.create({ data: threadNodeRPData });
 		console.log('acceptWay/reply node created', threadNodeRP);
+		threadNodeRQ.childNodes = [threadNodeRP];
+		await joinPossibleNodeWays(threadNodeRP);
 	}
 
+	await joinPossibleNodeWays(threadNodeRQ);
 	return threadNodeRQ;
 }
 
@@ -205,8 +232,6 @@ export async function expandThread(thread) {
 	await joinThreadNodes(thread);
 	await expandThreadWays(thread);
 }
-
-async function acceptRootWay(thread) {}
 
 async function acceptAutoexpandableWays(thread) {}
 

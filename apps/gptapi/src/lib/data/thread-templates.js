@@ -34,6 +34,7 @@ export const THREAD_WAYS_LIST = [
 	{
 		id: twIdSQ,
 		name: 'text quality',
+		title: 'Text quality:',
 
 		promptTemplateId: ptIdTM,
 		autoExpand: true,
@@ -48,6 +49,7 @@ export const THREAD_WAYS_LIST = [
 		{
 			id: `tw-text-aspect/${aspect}-etimate`,
 			name: `${aspect} aspect estimation`,
+			title: `${aspect}:`,
 
 			parentWayId: twIdSQ,
 
@@ -63,18 +65,21 @@ export const THREAD_WAYS_LIST = [
 		{
 			id: `tw-text-aspect/${aspect}-explain`,
 			name: `${aspect} text aspect explain`,
+			title: 'Explain',
 
 			parentWayId: `tw-text-aspect/${aspect}-etimate`,
 
 			promptTemplateId: ptIdTM,
 
 			threadParams: {
+				maxTokens: 500,
 				message: 'Provide 10 puncts that negatively affect this estimation',
 			},
 		},
 
 		{
 			name: `clarify ${aspect} errors`,
+			title: 'Clarify aspect',
 			parentWayId: `tw-text-aspect/${aspect}-explain`,
 
 			promptTemplateId: ptIdTM,
