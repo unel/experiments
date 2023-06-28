@@ -319,16 +319,21 @@
 									on:confirmed={() => saveChatMessage(chatMessage)}
 								/>
 							</div>
+
+							<div class="transcript-text" data-element="transcript.text">
 								{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
-									{@html markWord(
-										chatMessage.text,
-										$spTalkingStatus.wordStartIndex,
-										$spTalkingStatus.wordEndIndex
-									)}
+									<div class="text">
+										{@html markWord(
+											chatMessage.text,
+											$spTalkingStatus.wordStartIndex,
+											$spTalkingStatus.wordEndIndex
+										)}
+									</div>
 								{:else}
 									<CInput
+										multiline
 										bind:value={chatMessage.text}
-										on:confirmed={() => saveChatMessageText(chatMessage)}
+										on:confirmed={() => saveChatMessage(chatMessage)}
 									/>
 								{/if}
 							</div>
@@ -426,12 +431,32 @@
 		column-gap: var(--space);
 	}
 
+	.transcript-user {
+		min-width: 60px;
+		flex-basis: 60px;
+		flex-shrink: 1;
+	}
+
 	.transcript-text {
 		flex-grow: 1;
 	}
 
+	.transcript-text .text {
+		display: block;
+		box-sizing: border-box;
+
+		white-space: pre-line;
+		padding: 0;
+		margin: 0;
+		max-width: 100%;
+	}
+
 	.transcript-controls {
 		flex-shrink: 1;
+
+		display: flex;
+		flex-direction: row;
+		align-items: center;
 	}
 
 	.chat-item {
