@@ -15,6 +15,10 @@
 	import CInput from '@components/CustomInput.svelte';
 	import SpConfigurator from '@components/SPConfigurator.svelte';
 	import ThreadControl from '@components/Thread/ThreadControl.svelte';
+
+	import StopIcon from '@components/octicons/MuteIcon.svelte';
+	import PlayIcon from '@components/octicons/UnmuteIcon.svelte';
+	import RmIcon from '@components/octicons/XIcon.svelte';
 	// ------------------------------------
 
 	// page data (see +page.server.ts@load)
@@ -319,31 +323,11 @@
 								{#if sp}
 									{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
 										<button class="btn-octicon btn-octicon-danger" on:click={() => sp.stop()}>
-											<svg
-												class="octicon"
-												xmlns="http://www.w3.org/2000/svg"
-												viewBox="0 0 24 24"
-												width="24"
-												height="24"
-												><path
-													d="M12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805A.75.75 0 0 1 12 3.75ZM6.255 9.305a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86V5.445ZM16.28 8.22a.75.75 0 1 0-1.06 1.06L17.94 12l-2.72 2.72a.75.75 0 1 0 1.06 1.06L19 13.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L20.06 12l2.72-2.72a.75.75 0 0 0-1.06-1.06L19 10.94l-2.72-2.72Z"
-												/></svg
-											>
+											<StopIcon />
 										</button>
 									{:else}
 										<button class="btn-octicon" on:click={() => speakText(chatMessage.text)}>
-											<svg
-												class="octicon"
-												xmlns="http://www.w3.org/2000/svg"
-												viewBox="0 0 24 24"
-												width="24"
-												height="24"
-												><path
-													d="M11.553 3.064A.75.75 0 0 1 12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805a.752.752 0 0 1 .808-.13ZM10.5 5.445l-4.245 3.86a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86Zm8.218-1.223a.75.75 0 0 1 1.06 0c4.296 4.296 4.296 11.26 0 15.556a.75.75 0 0 1-1.06-1.06 9.5 9.5 0 0 0 0-13.436.75.75 0 0 1 0-1.06Z"
-												/><path
-													d="M16.243 7.757a.75.75 0 1 0-1.061 1.061 4.5 4.5 0 0 1 0 6.364.75.75 0 0 0 1.06 1.06 6 6 0 0 0 0-8.485Z"
-												/></svg
-											>
+											<PlayIcon />
 										</button>
 									{/if}
 								{/if}
@@ -354,17 +338,7 @@
 									class="btn-octicon btn-octicon-danger"
 									on:click={() => removeTranscript(idx)}
 								>
-									<svg
-										class="octicon"
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 16 16"
-										width="16"
-										height="16"
-										><path
-											fill-rule="evenodd"
-											d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"
-										/></svg
-									>
+									<RmIcon />
 								</button>
 							</div>
 						</div>

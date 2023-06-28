@@ -3,10 +3,15 @@
 	import { api, type ChatMessage } from '$lib/api';
 	import AnswerNode from './AnswerNode.svelte';
 
+	import CollapsedIcon from '@components/octicons/sm/ChevronRightIcon.svelte';
+	import ExpandedIcon from '@components/octicons/sm/ChevronDownIcon.svelte';
+	import SendIcon from '@components/octicons/sm/PaperAirplaneIcon.svelte';
+
 	type WayNode = Record<string, unknown> & {
 		id: string;
 		name: string;
 		title: string;
+		threadParams: Record<string, any>;
 	};
 
 	type ThreadNode = Record<string, unknown> & {
@@ -87,29 +92,9 @@
 		<span class="title" on:click={toggle}>
 			<button class="btn-octicon" on:click={toggle}>
 				{#if showWays}
-					<svg
-						class="octicon"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 16 16"
-						width="16"
-						height="16"
-					>
-						<path
-							d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"
-						/>
-					</svg>
+					<ExpandedIcon />
 				{:else}
-					<svg
-						class="octicon"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 16 16"
-						width="16"
-						height="16"
-					>
-						<path
-							d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"
-						/>
-					</svg>
+					<CollapsedIcon />
 				{/if}
 			</button>
 
@@ -144,19 +129,7 @@
 					on:click={() => acceptWay(way)}
 				>
 					>> {way.title}
-					<button class="btn-octicon" on:click={() => acceptWay(way)}>
-						<svg
-							class="octicon"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 16 16"
-							width="16"
-							height="16"
-						>
-							<path
-								d="M.989 8 .064 2.68a1.342 1.342 0 0 1 1.85-1.462l13.402 5.744a1.13 1.13 0 0 1 0 2.076L1.913 14.782a1.343 1.343 0 0 1-1.85-1.463L.99 8Zm.603-5.288L2.38 7.25h4.87a.75.75 0 0 1 0 1.5H2.38l-.788 4.538L13.929 8Z"
-							/>
-						</svg>
-					</button>
+					<button class="btn-octicon" on:click={() => acceptWay(way)}><SendIcon /></button>
 				</div>
 			{/each}
 		</section>
