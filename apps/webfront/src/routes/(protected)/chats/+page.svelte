@@ -15,10 +15,13 @@
 	import CInput from '@components/CustomInput.svelte';
 	import SpConfigurator from '@components/SPConfigurator.svelte';
 	import ThreadControl from '@components/Thread/ThreadControl.svelte';
+	import AsyncIconButton from '@components/AsyncIconButton.svelte';
 
 	import StopIcon from '@components/octicons/MuteIcon.svelte';
 	import PlayIcon from '@components/octicons/UnmuteIcon.svelte';
 	import RmIcon from '@components/octicons/XIcon.svelte';
+	import AddIcon from '@components/octicons/sm/PlusIcon.svelte';
+	import AiAddIcon from '@components/octicons/sm/HubotIcon.svelte';
 	// ------------------------------------
 
 	// page data (see +page.server.ts@load)
@@ -237,6 +240,24 @@
 		openedThreadId = message.id;
 	}
 
+	let isAiReplyMode = false;
+	function setAiReplyMode(newMode: boolean) {
+		isAiReplyMode = newMode;
+	}
+
+	function processKeyDown(e: KeyboardEvent) {
+		if (e.key === 'Alt') {
+			setAiReplyMode(true);
+			e.preventDefault();
+		}
+	}
+
+	function processKeyUp(e: KeyboardEvent) {
+		if (e.key === 'Alt') {
+			setAiReplyMode(false);
+			e.preventDefault();
+		}
+	}
 
 	function focusOnLastText() {
 		const query = `[data-element="transcript"]:nth-of-type(${
@@ -271,7 +292,12 @@
 	onDestroy(destroy);
 </script>
 
-<svelte:window on:beforeunload={destroy} />
+<svelte:window
+	on:beforeunload={destroy}
+	on:keydown={processKeyDown}
+	on:keyup={processKeyUp}
+	on:blur={() => setAiReplyMode(false)}
+/>
 
 <main class="MainContent">
 	<header class="Subhead">
@@ -396,7 +422,13 @@
 
 				<div class="TimelineItem">
 					<div class="TimelineItem-badge">
-						<button class="btn" on:click={() => addMessage(' ')}> + </button>
+						<AsyncIconButton class="btn" on:click={() => addNewMessage()}>
+							{#if isAiReplyMode}
+								<AiAddIcon />
+							{:else}
+								<AddIcon />
+							{/if}
+						</AsyncIconButton>
 					</div>
 				</div>
 			</section>
