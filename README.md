@@ -123,3 +123,10 @@ in this case, in container should be exists `config.yaml` with this content (rep
 ```yaml
 uri: mongodb://${MONGO_INITIAL_USERNAME}:${MONGO_INITIAL_PASSWORD}@localhost:${MONGO_PORT}
 ```
+
+
+install nodeapps deps:
+
+```bash
+docker compose -f ./docker-compose-preinstall.yml up && docker compose -f ./docker-compose-preinstall.yml rm -f
+```
