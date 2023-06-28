@@ -1,19 +1,19 @@
 <script lang="ts">
 	// imports
 	import { createEventDispatcher } from 'svelte';
-	import type { SR, SRStatus, SRResultItem } from '$lib/stt';
-	// ----------------------------------------------
 
+	import type { SR, SRStatus, SRResultItem } from '$lib/stt';
+	import RecordingIcon from '@components/octicons/sm/DotIcon.svelte';
+	// ----------------------------------------------
 
 	// props
 	export let sr: SR;
 	// ----------------------------------------------
 
-
 	// component logic
 	const dispatchEvent = createEventDispatcher<{
-		status: SRStatus,
-		message: SRResultItem,
+		status: SRStatus;
+		message: SRResultItem;
 	}>();
 	let isListening = false;
 
@@ -39,7 +39,6 @@
 		dispatchEvent('message', data);
 	}
 
-
 	// this is re-subscription logic to events from SR instance in case when instance is changed by props change
 	// IMPROVEME: could we use Storage api (.subscribe / .unsubscribe) for this case?
 	let usubSR = () => {};
@@ -55,12 +54,11 @@
 			unsubMessage();
 		};
 	}
-
 </script>
 
-<button class='btn btn-mr2' on:click={toggleListening} aria-selected={isListening}>
+<button class="btn btn-mr2" on:click={toggleListening} aria-selected={isListening}>
 	{#if isListening}
-	<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"></path></svg>
+		<RecordingIcon />
 	{/if}
 	<span>{isListening ? 'listening..' : 'listen'}</span>
 </button>

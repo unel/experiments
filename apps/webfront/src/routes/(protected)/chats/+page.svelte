@@ -6,7 +6,7 @@
 	import { goto } from '$app/navigation';
 
 	import { api, type ChatMessage } from '$lib/api';
-	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from "$lib/stt";
+	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from '$lib/stt';
 	import { SP, isSpeechSynthesAvailable, type SpeachParams } from '$lib/tts';
 	import createSPStores from '$lib/stores/sp-store';
 
@@ -14,17 +14,25 @@
 	import CButton from '@components/ButtonWithConfirmation.svelte';
 	import CInput from '@components/CustomInput.svelte';
 	import SpConfigurator from '@components/SPConfigurator.svelte';
-	// ------------------------------------
+	import ThreadControl from '@components/Thread/ThreadControl.svelte';
 
+	import StopIcon from '@components/octicons/MuteIcon.svelte';
+	import PlayIcon from '@components/octicons/UnmuteIcon.svelte';
+	import RmIcon from '@components/octicons/XIcon.svelte';
+	// ------------------------------------
 
 	// page data (see +page.server.ts@load)
 	export let data;
 	// ------------------------------------
 
-
 	// page logic
 	const dtFormatter = new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'medium' });
-	const {isActive: isSPActive, talkingStatus: spTalkingStatus, resubscribe: spResub, unsubscribe: spUnsub} = createSPStores();
+	const {
+		isActive: isSPActive,
+		talkingStatus: spTalkingStatus,
+		resubscribe: spResub,
+		unsubscribe: spUnsub
+	} = createSPStores();
 
 	function updateLog(e: CustomEvent<SRResultItem>) {
 		addMessage(e.detail.transcript, activeLanguage);
@@ -87,7 +95,7 @@
 
 		const result = await api.removeMessage(fetch, {
 			chatId: activeChat.id,
-			messageId: activeChat.messages[idx].id,
+			messageId: activeChat.messages[idx].id
 		});
 
 		if (!result.ok) {
@@ -102,7 +110,7 @@
 		const result = await api.createChat(fetch, { title: 'new chat', userId: data.user?.id || '-' });
 		data.chats.unshift({
 			...result,
-			messages: [],
+			messages: []
 		});
 		data.chats = data.chats;
 		navigateToChat(result.id);
@@ -117,7 +125,7 @@
 			chatId: activeChatId,
 			userId: data.user?.id,
 			language,
-			text,
+			text
 		});
 
 		if (!activeChat) {
@@ -139,7 +147,6 @@
 		await api.updateMessage(fetch, { messageId: id, chatId, text });
 	}
 
-
 	function speakText(text: string) {
 		sp?.speak(text);
 	}
@@ -157,11 +164,10 @@
 	const sp = speechSynthesAvailable ? new SP({ rate: 1 }) : undefined;
 	const srs = speechRecognitionAvailable
 		? {
-			en: new SR({ language: 'en', continuous: true }),
-			ru: new SR({ language: 'ru', continuous: true }),
-		}
+				en: new SR({ language: 'en', continuous: true }),
+				ru: new SR({ language: 'ru', continuous: true })
+		  }
 		: undefined;
-
 
 	const WordMarkers = ['<b>', '</b>'];
 	function markWord(str: string, from?: number, to?: number): string {
@@ -169,12 +175,44 @@
 			return str;
 		}
 
-		return str.substring(0, from) + WordMarkers[0] + str.substring(from, to + 1) + WordMarkers[1] + str.substring(to + 1);
+		return (
+			str.substring(0, from) +
+			WordMarkers[0] +
+			str.substring(from, to + 1) +
+			WordMarkers[1] +
+			str.substring(to + 1)
+		);
+	}
+
+	type ThreadState = {
+		data: Record<string, any>;
+	};
+
+	const THREADS: Record<string, ThreadState> = {};
+	let openedThreadId: string;
+	async function toggleThread(message: ChatMessage) {
+		THREADS[message.id] = THREADS[message.id] || {};
+
+		const isThreadOpen = Boolean(openedThreadId === message.id);
+
+		if (isThreadOpen) {
+			openedThreadId = '';
+			return;
+		}
+
+		if (!THREADS[message.id].data) {
+			THREADS[message.id].data = await api.openMessageThread(fetch, {
+				messageId: message.id,
+				messageText: message.text
+			});
+		}
+
+		openedThreadId = message.id;
 	}
 
 	$: currentPageUrl = $page.url;
 	$: activeChatId = currentPageUrl.hash.split(':')[1];
-	$: activeChat = data.chats?.find?.(chat => chat.id === activeChatId);
+	$: activeChat = data.chats?.find?.((chat) => chat.id === activeChatId);
 
 	$: {
 		if (sp) {
@@ -217,7 +255,7 @@
 								<button
 									class="BtnGroup-item btn"
 									aria-selected={language === activeLanguage}
-									on:click={() => activeLanguage = language}
+									on:click={() => (activeLanguage = language)}
 								>
 									{language}
 								</button>
@@ -227,7 +265,6 @@
 						<Listener sr={srs[activeLanguage]} on:message={updateLog} />
 					</div>
 				</div>
-
 			{:else}
 				speech recongition is unavailable =(
 			{/if}
@@ -239,7 +276,6 @@
 						<SpConfigurator
 							includeGroups={['en', 'fr', 'ru']}
 							includeLangs={['us', 'gb', 'ng', 'in', 'ru']}
-
 							on:config={syncSPConfig}
 						/>
 					</div>
@@ -248,12 +284,17 @@
 		</div>
 	</header>
 
-
 	<div class="Layout">
 		<div class="Layout-main">
 			<section class="transcripts">
-				{#each (activeChat?.messages || []) as chatMessage, idx}
-					<div class="TimelineItem">
+				{#each activeChat?.messages || [] as chatMessage, idx}
+					<div class="TimelineItem message-line">
+						{#if openedThreadId === chatMessage.id}
+							<div class="thread-box">
+								<ThreadControl thread={THREADS[chatMessage.id].data} />
+							</div>
+						{/if}
+
 						<div class="TimelineItem-badge">
 							{idx + 1}
 						</div>
@@ -265,27 +306,39 @@
 
 							<div class="transcript-text">
 								{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
-								{@html markWord(chatMessage.text, $spTalkingStatus.wordStartIndex, $spTalkingStatus.wordEndIndex)}
+									{@html markWord(
+										chatMessage.text,
+										$spTalkingStatus.wordStartIndex,
+										$spTalkingStatus.wordEndIndex
+									)}
 								{:else}
-								<CInput bind:value={chatMessage.text} on:confirmed={() => saveChatMessageText(chatMessage)} />
+									<CInput
+										bind:value={chatMessage.text}
+										on:confirmed={() => saveChatMessageText(chatMessage)}
+									/>
 								{/if}
 							</div>
 
 							<div class="transcript-controls">
-								{#if sp }
+								{#if sp}
 									{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
 										<button class="btn-octicon btn-octicon-danger" on:click={() => sp.stop()}>
-											<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805A.75.75 0 0 1 12 3.75ZM6.255 9.305a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86V5.445ZM16.28 8.22a.75.75 0 1 0-1.06 1.06L17.94 12l-2.72 2.72a.75.75 0 1 0 1.06 1.06L19 13.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L20.06 12l2.72-2.72a.75.75 0 0 0-1.06-1.06L19 10.94l-2.72-2.72Z"></path></svg>
+											<StopIcon />
 										</button>
 									{:else}
 										<button class="btn-octicon" on:click={() => speakText(chatMessage.text)}>
-											<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M11.553 3.064A.75.75 0 0 1 12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805a.752.752 0 0 1 .808-.13ZM10.5 5.445l-4.245 3.86a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86Zm8.218-1.223a.75.75 0 0 1 1.06 0c4.296 4.296 4.296 11.26 0 15.556a.75.75 0 0 1-1.06-1.06 9.5 9.5 0 0 0 0-13.436.75.75 0 0 1 0-1.06Z"></path><path d="M16.243 7.757a.75.75 0 1 0-1.061 1.061 4.5 4.5 0 0 1 0 6.364.75.75 0 0 0 1.06 1.06 6 6 0 0 0 0-8.485Z"></path></svg>
+											<PlayIcon />
 										</button>
 									{/if}
 								{/if}
 
-								<button class="btn-octicon btn-octicon-danger" on:click={() => removeTranscript(idx)}>
-									<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg>
+								<button class="btn" on:click={() => toggleThread(chatMessage)}> &lt;?&gt;</button>
+
+								<button
+									class="btn-octicon btn-octicon-danger"
+									on:click={() => removeTranscript(idx)}
+								>
+									<RmIcon />
 								</button>
 							</div>
 						</div>
@@ -294,9 +347,7 @@
 
 				<div class="TimelineItem">
 					<div class="TimelineItem-badge">
-						<button class="btn" on:click={() => addMessage(' ')}>
-							+
-						</button>
+						<button class="btn" on:click={() => addMessage(' ')}> + </button>
 					</div>
 				</div>
 			</section>
@@ -307,15 +358,20 @@
 				<button class="SideNav-item" on:click={createChat}>+ Chat</button>
 
 				{#each data.chats as chat, idx}
-					<a class="SideNav-item chat-item" aria-current={chat.id === activeChatId} href="#chat:{chat.id}">
-						#{idx} {chat.title}
+					<a
+						class="SideNav-item chat-item"
+						aria-current={chat.id === activeChatId}
+						href="#chat:{chat.id}"
+					>
+						#{idx}
+						{chat.title}
 
-						<CButton actionString='remove' on:confirmed={() => removeChat(idx)}>remove</CButton>
+						<CButton actionString="remove" on:confirmed={() => removeChat(idx)}>remove</CButton>
 					</a>
 				{/each}
 			</nav>
 		</div>
-	  </div>
+	</div>
 </main>
 
 <style>
@@ -353,7 +409,7 @@
 		width: 100%;
 		display: flex;
 		flex-direction: row;
-		column-gap: var(--space)
+		column-gap: var(--space);
 	}
 
 	.transcript-text {
@@ -368,5 +424,23 @@
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
+	}
+
+	.message-line {
+		position: relative;
+	}
+
+	.thread-box {
+		position: absolute;
+		background-color: rgba(250, 250, 250);
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		box-shadow: 8px 12px 8px 2px rgba(0, 0, 0, 0.4);
+		max-width: 600px;
+
+		overflow-x: hidden;
+		overflow-y: auto;
+		top: 80%;
+		z-index: 10;
+		left: 24px;
 	}
 </style>
