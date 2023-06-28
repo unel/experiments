@@ -41,8 +41,26 @@
 		addMessage(e.detail.transcript, activeLanguage);
 	}
 
-	function addMessage(text: string, language = activeLanguage) {
-		createMessage({ language, text });
+	function addMessage(text: string, language = activeLanguage, userId = data.user?.id || '') {
+		return createMessage({ language, text, userId });
+	}
+
+	async function addNewMessage() {
+		if (isAiReplyMode) {
+			const systemUsers = new Set(['system', 'assistant', 'user']);
+
+			const messages = (activeChat?.messages || []).map((chatMessage) => ({
+				role: systemUsers.has(chatMessage.userId) ? chatMessage.userId : 'user',
+				content: chatMessage.text
+			}));
+
+			const reply = await api.getChatReply(fetch, { messages });
+			await addMessage(reply, activeLanguage, 'assistant');
+		} else {
+			await addMessage(' ');
+		}
+
+		focusOnLastText();
 	}
 
 	function navigateToChat(chatId: string) {
@@ -219,6 +237,18 @@
 		openedThreadId = message.id;
 	}
 
+
+	function focusOnLastText() {
+		const query = `[data-element="transcript"]:nth-of-type(${
+			activeChat?.messages?.length || 0
+		}) [data-element="transcript.text"] textarea`;
+
+		const element = document.querySelector(query);
+
+		if (element) {
+			(element as HTMLInputElement).focus();
+		}
+	}
 	$: currentPageUrl = $page.url;
 	$: activeChatId = currentPageUrl.hash.split(':')[1];
 	$: activeChat = data.chats?.find?.((chat) => chat.id === activeChatId);
