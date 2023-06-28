@@ -7,6 +7,8 @@
 	import ExpandedIcon from '@components/octicons/sm/ChevronDownIcon.svelte';
 	import SendIcon from '@components/octicons/sm/PaperAirplaneIcon.svelte';
 
+	const dispatchEvent = createEventDispatcher();
+
 	type WayNode = Record<string, unknown> & {
 		id: string;
 		name: string;
@@ -25,8 +27,6 @@
 
 	export let threadNode: ThreadNode;
 	const shortAnswerLimit = 10;
-
-	const dispatchEvent = createEventDispatcher();
 
 	$: children = threadNode?.childNodes || [];
 	$: possibleWays = threadNode?.possibleWays || [];
@@ -49,6 +49,25 @@
 
 	function toggleWays() {
 		showWays = !showWays;
+	}
+
+	async function ensureMessages() {
+		if (messages) {
+			return messages;
+		}
+
+		messages = await api.getNodeMessages(fetch, {
+			threadId: threadNode.threadId,
+			nodeId: threadNode.id
+		});
+
+		return messages;
+	}
+
+	async function forwardMessages() {
+		await ensureMessages();
+
+		dispatchEvent('fw_messages', { threadNode, messages });
 	}
 
 	async function logMessages() {
@@ -114,7 +133,7 @@
 		<section class="children">
 			{#each children as child}
 				<div class="child">
-					<svelte:self threadNode={child} />
+					<svelte:self threadNode={child} on:fw_messages />
 				</div>
 			{/each}
 		</section>
@@ -136,7 +155,7 @@
 	{/if}
 
 	{#if threadNode.title === 'answer'}
-		<button class="btn-link" on:click={logMessages}> log messages </button>
+		<button class="btn-link" on:click={forwardMessages}> forward messages </button>
 	{/if}
 </section>
 

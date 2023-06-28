@@ -5,7 +5,7 @@
 </script>
 
 <section class="thread">
-	<ThreadNode threadNode={thread.rootNode} />
+	<ThreadNode threadNode={thread.rootNode} on:fw_messages />
 </section>
 
 <style>

@@ -270,6 +270,19 @@
 			(element as HTMLInputElement).focus();
 		}
 	}
+
+	async function onForwardMessages(e: CustomEvent) {
+		const messages = e.detail.messages || [];
+		if (!messages.length) {
+			return;
+		}
+
+		await createChat();
+		for (const message of messages) {
+			await addMessage(message.text, activeLanguage, message.user);
+		}
+	}
+
 	$: currentPageUrl = $page.url;
 	$: activeChatId = currentPageUrl.hash.split(':')[1];
 	$: activeChat = data.chats?.find?.((chat) => chat.id === activeChatId);
@@ -283,7 +296,6 @@
 	}
 
 	function destroy() {
-		console.log('destroying!!!');
 		sp?.destroy();
 		srs?.en.destroy();
 		srs?.ru.destroy();
@@ -353,10 +365,13 @@
 		<div class="Layout-main">
 			<section class="transcripts">
 				{#each activeChat?.messages || [] as chatMessage, idx}
-					<div class="TimelineItem message-line">
-						{#if openedThreadId === chatMessage.id}
+					<div class="TimelineItem message-line" data-element="transcript">
+						{#if openedThreadId && openedThreadId === chatMessage.id}
 							<div class="thread-box">
-								<ThreadControl thread={THREADS[chatMessage.id].data} />
+								<ThreadControl
+									thread={THREADS[chatMessage.id].data}
+									on:fw_messages={onForwardMessages}
+								/>
 							</div>
 						{/if}
 
