@@ -119,14 +119,18 @@
 		navigateToChat(result.id);
 	}
 
-	async function createMessage({ language, text }: Record<string, string>) {
+	async function createMessage({
+		language,
+		text,
+		userId = data.user?.id || ''
+	}: Record<string, string>) {
 		if (!activeChatId || !data.user?.id) {
 			return;
 		}
 
 		const result = await api.createMessage(fetch, {
 			chatId: activeChatId,
-			userId: data.user?.id,
+			userId,
 			language,
 			text
 		});
@@ -138,16 +142,18 @@
 		activeChat.messages = activeChat.messages || [];
 		activeChat.messages.push(result);
 		activeChat.messages = activeChat.messages;
+
+		return result;
 	}
 
-	async function saveChatMessageText(chatMessage: ChatMessage) {
-		const { chatId, text, id } = chatMessage || {};
+	async function saveChatMessage(chatMessage: ChatMessage) {
+		const { chatId, text, id, userId } = chatMessage || {};
 
 		if (!id || !chatId) {
 			return;
 		}
 
-		await api.updateMessage(fetch, { messageId: id, chatId, text });
+		await api.updateMessage(fetch, { messageId: id, chatId, text, userId });
 	}
 
 	function speakText(text: string) {
@@ -307,7 +313,12 @@
 								{dtFormatter.format(chatMessage.createdAt)}
 							</div>
 
-							<div class="transcript-text">
+							<div class="transcript-user">
+								<CInput
+									bind:value={chatMessage.userId}
+									on:confirmed={() => saveChatMessage(chatMessage)}
+								/>
+							</div>
 								{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
 									{@html markWord(
 										chatMessage.text,
