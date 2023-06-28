@@ -73,7 +73,7 @@
 			threadParams
 		});
 
-		threadNode.childNodes.push(result);
+		threadNode.childNodes.push(result as ThreadNode);
 		threadNode.possibleWays = threadNode.possibleWays.filter((w) => w.id !== way.id);
 	}
 </script>
