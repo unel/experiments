@@ -26,7 +26,10 @@
 	// ------------------------------------
 
 	// page logic
-	const dtFormatter = new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'medium' });
+	const dtFormatter = new Intl.DateTimeFormat('en-GB', {
+		dateStyle: undefined,
+		timeStyle: 'short'
+	});
 	const {
 		isActive: isSPActive,
 		talkingStatus: spTalkingStatus,
