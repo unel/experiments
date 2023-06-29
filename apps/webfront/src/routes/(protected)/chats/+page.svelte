@@ -1,3 +1,31 @@
+<script lang="ts" context="module">
+	import type { ChatMessage } from '$lib/api';
+	import { findById } from '$lib/collections';
+
+	type Lang = 'en' | 'ru';
+
+	function threadMessageToChatMessageBody(
+		threadMessage: Record<string, string>,
+		language = 'en'
+	): Partial<ChatMessage> {
+		return {
+			text: threadMessage.text,
+			userId: threadMessage.user,
+			language
+		};
+	}
+
+	function threadMessagesToChatMessages(
+		messages: Array<Record<string, string>>,
+		language = 'en'
+	): Array<Partial<ChatMessage>> {
+		return messages.map((m) => threadMessageToChatMessageBody(m, language));
+	}
+
+	const AI_CREATING_KEY = 'Alt';
+	const AVAILABLE_LANGUAGES: Array<Lang> = ['ru', 'en'];
+</script>
+
 <script lang="ts">
 	// imports
 	import { onDestroy } from 'svelte';
@@ -6,15 +34,18 @@
 	import { goto } from '$app/navigation';
 
 	import { api } from '$lib/api';
-	import { SR, isSpeechRecognitionAvailable, type SRResultItem } from '$lib/stt';
-	import { SP, isSpeechSynthesAvailable, type SpeachParams } from '$lib/tts';
+	import { STTEngine, isSpeechRecognitionAvailable, type SRResultItem } from '$lib/stt';
+	import { TTSEngine, isSpeechSynthesAvailable, type SpeachParams } from '$lib/tts';
 
 	import Listener from '@components/controls/Listener.svelte';
 	import CInput from '@components/controls/CustomInput.svelte';
 	import SpConfigurator from '@components/controls/SPConfigurator.svelte';
 
 	import ChatsList from '@components/chat/ChatsList.svelte';
-	import ChatMessages, { focusOnText } from '@components/chat/ChatMessages.svelte';
+	import ChatMessages, {
+		focusOnText,
+		type CreatigMode
+	} from '@components/chat/ChatMessages.svelte';
 
 	import { createChatControls } from '$lib/chat-page-controls/chat-controls';
 	import { createNavigationControls } from '$lib/chat-page-controls/navigation-controls.js';
@@ -26,8 +57,8 @@
 	// ------------------------------------
 
 	// page logic
-	const nav = createNavigationControls({ goto, getPageUrl: () => $page.url });
-	const chats = createChatControls({
+	const navCtl = createNavigationControls({ goto, getPageUrl: () => $page.url });
+	const chatsCtl = createChatControls({
 		api,
 		fetchFn: fetch,
 		chats: data.chats,
@@ -36,7 +67,7 @@
 			data.chats = data.chats;
 
 			if (type === 'created') {
-				nav.navigateToChat(payload.id);
+				navCtl.navigateToChat(payload.id);
 			}
 
 			if (type === 'removed') {
@@ -46,15 +77,15 @@
 					const newActiveChatId = nextChatId || prevChatId;
 
 					if (newActiveChatId) {
-						nav.navigateToChat(newActiveChatId);
+						navCtl.navigateToChat(newActiveChatId);
 					} else {
-						nav.navigateToDefaultState();
+						navCtl.navigateToDefaultState();
 					}
 				}
 			}
 		}
 	});
-	const messages = createChatMessagesControls({
+	const messagesCtl = createChatMessagesControls({
 		api,
 		fetchFn: fetch,
 		user: data.user,
@@ -75,70 +106,53 @@
 	});
 
 	function updateLog(e: CustomEvent<SRResultItem>) {
-		messages.addNewMessage('default', { text: e.detail.transcript, language: activeLanguage });
+		messagesCtl.addNewMessage('default', { text: e.detail.transcript, language: activeLanguage });
 	}
 
-	function syncSPConfig(e: CustomEvent<SpeachParams>) {
-		sp?.applyConfig(e.detail);
+	function syncTTSConfig(e: CustomEvent<SpeachParams>) {
+		tts?.applyConfig(e.detail);
 	}
 
-	type Lang = 'en' | 'ru';
 	let activeLanguage: Lang = 'en';
-	const languages: Array<Lang> = ['en', 'ru'];
 	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
 	const speechSynthesAvailable = isSpeechSynthesAvailable();
 
-	const sp = speechSynthesAvailable ? new SP({ rate: 1 }) : undefined;
-	const srs = speechRecognitionAvailable
-		? {
-				en: new SR({ language: 'en', continuous: true }),
-				ru: new SR({ language: 'ru', continuous: true })
-		  }
-		: undefined;
+	const tts = speechSynthesAvailable ? new TTSEngine({ rate: 1 }) : undefined;
+	const stt = speechRecognitionAvailable ? new STTEngine({ continuous: true }) : undefined;
 
-	let isAiReplyMode = false;
-	function setAiReplyMode(newMode: boolean) {
-		isAiReplyMode = newMode;
+	let creatingMessageMode: CreatigMode = 'default';
+	function setCreatingMessageMode(newMode: CreatigMode) {
+		creatingMessageMode = newMode;
 	}
 
 	function processKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Alt') {
-			setAiReplyMode(true);
+		if (e.key === AI_CREATING_KEY) {
+			setCreatingMessageMode('aireply');
 			e.preventDefault();
 		}
 	}
 
 	function processKeyUp(e: KeyboardEvent) {
-		if (e.key === 'Alt') {
-			setAiReplyMode(false);
+		if (e.key === AI_CREATING_KEY) {
+			setCreatingMessageMode('default');
 			e.preventDefault();
 		}
 	}
 
 	async function onForwardMessages(e: CustomEvent) {
-		const messages = e.detail.messages || [];
-		if (!messages.length) {
-			return;
-		}
-
-		await chats.createChat();
-		for (const message of messages) {
-			await messages.addNewMessage('default', {
-				text: message.text,
-				language: activeLanguage,
-				userId: message.user
-			});
-		}
+		return messagesCtl.createChatMessages({
+			chat: await chatsCtl.createChat(),
+			messages: threadMessagesToChatMessages(e.detail.messages || [], activeLanguage)
+		});
 	}
 
 	$: currentPageUrl = $page.url;
 	$: activeChatId = currentPageUrl.hash.split(':')[1];
-	$: activeChat = data.chats?.find?.((chat) => chat.id === activeChatId);
+	$: activeChat = findById(data.chats || [], activeChatId);
 
 	function destroy() {
-		sp?.destroy();
-		srs?.en.destroy();
-		srs?.ru.destroy();
+		tts?.destroy();
+		stt?.destroy();
 	}
 
 	onDestroy(destroy);
@@ -148,7 +162,7 @@
 	on:beforeunload={destroy}
 	on:keydown={processKeyDown}
 	on:keyup={processKeyUp}
-	on:blur={() => setAiReplyMode(false)}
+	on:blur={() => setCreatingMessageMode('default')}
 />
 
 <main class="MainContent">
@@ -158,7 +172,7 @@
 				Chat::
 				<CInput
 					bind:value={activeChat.title}
-					on:confirmed={() => chats.updateChat(activeChat?.id, { title: activeChat?.title })}
+					on:confirmed={() => chatsCtl.updateChat(activeChat?.id, { title: activeChat?.title })}
 				/>
 			{:else}
 				Chats
@@ -166,12 +180,12 @@
 		</h1>
 
 		<div class="Subhead-actions">
-			{#if srs}
+			{#if stt}
 				<div class="Box">
 					<div class="Box-header">Speach-to-text</div>
 					<div class="Box-body">
 						<div class="BtnGroup">
-							{#each languages as language}
+							{#each AVAILABLE_LANGUAGES as language}
 								<button
 									class="BtnGroup-item btn"
 									aria-selected={language === activeLanguage}
@@ -182,21 +196,21 @@
 							{/each}
 						</div>
 
-						<Listener sr={srs[activeLanguage]} on:message={updateLog} />
+						<Listener {stt} language={activeLanguage} on:message={updateLog} />
 					</div>
 				</div>
 			{:else}
 				speech recongition is unavailable =(
 			{/if}
 
-			{#if sp}
+			{#if tts}
 				<div class="Box">
 					<div class="Box-header">Text-to-speech</div>
 					<div class="Box-body">
 						<SpConfigurator
 							includeGroups={['en', 'fr', 'ru']}
 							includeLangs={['us', 'gb', 'ng', 'in', 'ru']}
-							on:config={syncSPConfig}
+							on:config={syncTTSConfig}
 						/>
 					</div>
 				</div>
@@ -207,12 +221,12 @@
 	<div class="Layout">
 		<div class="Layout-main">
 			<ChatMessages
-				{sp}
+				sp={tts}
 				messages={activeChat?.messages || []}
-				creatingMode={isAiReplyMode ? 'aireply' : 'default'}
-				on:create={(e) => messages.addNewMessage(e.detail.creatingMode)}
-				on:save={(e) => messages.saveChatMessage(e.detail.message)}
-				on:remove={(e) => messages.removeMessage(e.detail.id)}
+				creatingMode={creatingMessageMode}
+				on:create={(e) => messagesCtl.addNewMessage(e.detail.creatingMode)}
+				on:save={(e) => messagesCtl.saveChatMessage(e.detail.message)}
+				on:remove={(e) => messagesCtl.removeMessage(e.detail.id)}
 				on:fw_thread_messages={onForwardMessages}
 			/>
 		</div>
@@ -221,8 +235,8 @@
 			<ChatsList
 				chats={data.chats}
 				currentId={activeChatId}
-				on:create={() => chats.createChat()}
-				on:remove={(e) => chats.removeChat(e.detail.id)}
+				on:create={() => chatsCtl.createChat()}
+				on:remove={(e) => chatsCtl.removeChat(e.detail.id)}
 			/>
 		</div>
 	</div>

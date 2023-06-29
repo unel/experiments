@@ -35,10 +35,6 @@
 	$: answerText = answerNode?.messageText ?? '';
 	$: isShortAnswer = answerText && answerText.length < shortAnswerLimit;
 
-	$: {
-		console.log({ threadNode, children, possibleWays, answerNode });
-	}
-
 	let showChilds = threadNode.title === 'answer' || !isShortAnswer;
 	let showWays = showChilds;
 	let messages: undefined | Array<Record<string, any>>;
@@ -68,20 +64,6 @@
 		await ensureMessages();
 
 		dispatchEvent('fw_messages', { threadNode, messages });
-	}
-
-	async function logMessages() {
-		if (messages) {
-			console.log('thread messages', messages);
-			return;
-		}
-
-		messages = await api.getNodeMessages(fetch, {
-			threadId: threadNode.threadId,
-			nodeId: threadNode.id
-		});
-
-		logMessages();
 	}
 
 	function toggle() {

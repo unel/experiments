@@ -1,6 +1,8 @@
+import { findIndexById } from '$lib/collections';
+
 export function createChatControls({ api, fetchFn, chats, user, notifyUpdate }) {
 	async function removeChat(id: string) {
-		const idx = (chats || []).findIndex((chat) => chat.id === id);
+		const idx = findIndexById(chats || [], id);
 		const chat = idx !== -1 ? chats[idx] : null;
 
 		if (!chat) {
@@ -22,12 +24,10 @@ export function createChatControls({ api, fetchFn, chats, user, notifyUpdate }) 
 			userId: user?.id || '-'
 		});
 
-		chats.unshift({
-			...result,
-			messages: []
-		});
+		chats.unshift(result);
 
 		notifyUpdate('created', { id: result.id, idx: 0 });
+		return result;
 	}
 
 	async function updateChat(chatId, updates = {}) {

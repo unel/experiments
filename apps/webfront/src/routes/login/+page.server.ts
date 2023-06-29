@@ -2,8 +2,6 @@ import { fail, redirect, type RequestEvent, type Actions, type ActionFailure } f
 import { loginUser } from '$lib/user.model';
 
 function redirectNext(event: RequestEvent) {
-	console.log('ev', JSON.stringify(event.url.searchParams, undefined, 4))
-	console.log('redirecting', event.url.searchParams.get('redirectTo'));
 	throw redirect(302, event.url.searchParams.get('redirectTo') || '/profile');
 }
 
@@ -34,4 +32,4 @@ export const actions: Actions = {
 
 		return redirectNext(event);
 	}
-}
+};

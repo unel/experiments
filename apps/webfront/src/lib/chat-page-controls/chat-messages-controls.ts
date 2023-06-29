@@ -1,3 +1,5 @@
+import { findIndexById } from '$lib/collections';
+
 export function createChatMessagesControls({ getActiveChat, api, fetchFn, user, notifyUpdate }) {
 	async function addNewMessage(
 		mode: CreatigMode,
@@ -21,28 +23,41 @@ export function createChatMessagesControls({ getActiveChat, api, fetchFn, user, 
 	}
 
 	async function createMessage({
+		chat = getActiveChat(),
 		language,
 		text,
 		userId = user?.id || ''
 	}: Record<string, string>) {
-		const activeChat = getActiveChat();
-		if (!activeChat?.id || !userId) {
+		if (!chat?.id || !userId) {
 			return;
 		}
 
 		const result = await api.createMessage(fetchFn, {
-			chatId: activeChat.id,
+			chatId: chat.id,
 			userId,
 			language,
 			text
 		});
 
-		activeChat.messages = activeChat.messages || [];
-		activeChat.messages.push(result);
+		chat.messages = [...(chat.messages ?? []), result];
 
 		notifyUpdate('created', { id: result.id });
-
 		return result;
+	}
+
+	async function createChatMessages({ chat, messages }) {
+		const createdMessages = await Promise.all(
+			messages.map((message) =>
+				createMessage({
+					chat,
+					...message
+				})
+			)
+		);
+
+		notifyUpdate('created', { chatId: chat.id, ids: createdMessages.map((m) => m.id) });
+
+		return createdMessages;
 	}
 
 	async function saveChatMessage(chatMessage: ChatMessage) {
@@ -63,7 +78,7 @@ export function createChatMessagesControls({ getActiveChat, api, fetchFn, user, 
 			return;
 		}
 
-		const idx = activeChat.messages.findIndex((message) => message.id === id);
+		const idx = findIndexById(activeChat.messages || [], id);
 		if (idx === -1) {
 			return;
 		}
@@ -83,6 +98,7 @@ export function createChatMessagesControls({ getActiveChat, api, fetchFn, user, 
 
 	return {
 		addNewMessage,
+		createChatMessages,
 		removeMessage,
 		saveChatMessage
 	};

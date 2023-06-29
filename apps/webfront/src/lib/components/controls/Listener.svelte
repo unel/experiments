@@ -2,12 +2,13 @@
 	// imports
 	import { createEventDispatcher } from 'svelte';
 
-	import type { SR, SRStatus, SRResultItem } from '$lib/stt';
+	import type { STTEngine, SRStatus, SRResultItem } from '$lib/stt';
 	import RecordingIcon from '@components/octicons/sm/DotIcon.svelte';
 	// ----------------------------------------------
 
 	// props
-	export let sr: SR;
+	export let stt: STTEngine;
+	export let language: string = 'en';
 	// ----------------------------------------------
 
 	// component logic
@@ -18,11 +19,11 @@
 	let isListening = false;
 
 	function startListening() {
-		sr.startListening();
+		stt.startListening(language);
 	}
 
 	function stopListening() {
-		sr.stopListening();
+		stt.stopListening();
 	}
 
 	function toggleListening() {
@@ -39,15 +40,21 @@
 		dispatchEvent('message', data);
 	}
 
+	$: {
+		if (stt.language !== language) {
+			stt.switchLanguage(language);
+		}
+	}
+
 	// this is re-subscription logic to events from SR instance in case when instance is changed by props change
 	// IMPROVEME: could we use Storage api (.subscribe / .unsubscribe) for this case?
 	let usubSR = () => {};
 	$: {
 		usubSR();
 
-		isListening = sr.isActive;
-		const unsubStatus = sr.addStatusListener(onStatusUpdate);
-		const unsubMessage = sr.addMessageListener(onMessageRecognised);
+		isListening = stt.isActive;
+		const unsubStatus = stt.addStatusListener(onStatusUpdate);
+		const unsubMessage = stt.addMessageListener(onMessageRecognised);
 
 		usubSR = () => {
 			unsubStatus();
