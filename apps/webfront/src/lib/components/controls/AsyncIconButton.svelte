@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { createAwaitingEventDispatcher } from '$lib/svelte-utils';
+
+	import DualRingSpinner from '@components/spinners/DualRingSpinner.svelte';
 	import AsyncButton from './AsyncButton.svelte';
-	import DualRingSpinner from './spinners/DualRingSpinner.svelte';
 
 	const dispatchEvent = createAwaitingEventDispatcher();
 

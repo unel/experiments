@@ -10,12 +10,12 @@
 	import { SP, isSpeechSynthesAvailable, type SpeachParams } from '$lib/tts';
 	import createSPStores from '$lib/stores/sp-store';
 
-	import Listener from '@components/Listener.svelte';
-	import CButton from '@components/ButtonWithConfirmation.svelte';
-	import CInput from '@components/CustomInput.svelte';
-	import SpConfigurator from '@components/SPConfigurator.svelte';
-	import ThreadControl from '@components/Thread/ThreadControl.svelte';
-	import AsyncIconButton from '@components/AsyncIconButton.svelte';
+	import Listener from '@components/controls/Listener.svelte';
+	import CButton from '@components/controls/ButtonWithConfirmation.svelte';
+	import CInput from '@components/controls/CustomInput.svelte';
+	import SpConfigurator from '@components/controls/SPConfigurator.svelte';
+	import AsyncIconButton from '@components/controls/AsyncIconButton.svelte';
+	import ThreadControl from '@components/controls/Thread/ThreadControl.svelte';
 
 	import StopIcon from '@components/octicons/MuteIcon.svelte';
 	import PlayIcon from '@components/octicons/UnmuteIcon.svelte';
