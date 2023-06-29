@@ -38,7 +38,7 @@
 
 	import { createAwaitingEventDispatcher } from '$lib/svelte-utils';
 	import { type ChatMessage, api } from '$lib/api';
-	import type { SP } from '$lib/tts';
+	import type { TTSEngine } from '$lib/tts';
 	import createSPStores from '$lib/stores/sp-store';
 
 	import CInput from '@components/controls/CustomInput.svelte';
@@ -55,7 +55,7 @@
 	// -- props
 
 	export let messages: ChatMessage[] = [];
-	export let sp: SP | undefined;
+	export let tts: TTSEngine | undefined;
 	export let creatingMode: CreatigMode = 'default';
 	// -- endof props
 
@@ -126,23 +126,23 @@
 	} = createSPStores();
 
 	$: {
-		if (sp) {
-			spResub(sp);
+		if (tts) {
+			spResub(tts);
 		} else {
 			spUnsub();
 		}
 	}
 
 	function stopSpeak() {
-		sp?.stop();
+		tts?.stop();
 	}
 
 	function speakText(text: string) {
-		sp?.speak(text);
+		tts?.speak(text);
 	}
 
 	function TTSCleanup() {
-		sp?.destroy();
+		tts?.destroy();
 	}
 
 	onDestroy(TTSCleanup);
@@ -195,7 +195,7 @@
 				</div>
 
 				<div class="message-controls">
-					{#if sp}
+					{#if tts}
 						{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
 							<button class="btn-octicon btn-octicon-danger" on:click={() => stopSpeak()}>
 								<StopIcon />

@@ -180,40 +180,26 @@
 		</h1>
 
 		<div class="Subhead-actions">
-			{#if stt}
-				<div class="Box">
-					<div class="Box-header">Speach-to-text</div>
-					<div class="Box-body">
-						<div class="BtnGroup">
-							{#each AVAILABLE_LANGUAGES as language}
-								<button
-									class="BtnGroup-item btn"
-									aria-selected={language === activeLanguage}
-									on:click={() => (activeLanguage = language)}
-								>
-									{language}
-								</button>
-							{/each}
-						</div>
+			<div class="BtnGroup">
+				{#each AVAILABLE_LANGUAGES as language}
+					<button
+						class="BtnGroup-item btn"
+						aria-selected={language === activeLanguage}
+						on:click={() => (activeLanguage = language)}
+					>
+						{language}
+					</button>
+				{/each}
+			</div>
 
-						<Listener {stt} language={activeLanguage} on:message={updateLog} />
-					</div>
-				</div>
+			{#if stt}
+				<Listener {stt} language={activeLanguage} on:message={updateLog} />
 			{:else}
 				speech recongition is unavailable =(
 			{/if}
 
 			{#if tts}
-				<div class="Box">
-					<div class="Box-header">Text-to-speech</div>
-					<div class="Box-body">
-						<SpConfigurator
-							includeGroups={['en', 'fr', 'ru']}
-							includeLangs={['us', 'gb', 'ng', 'in', 'ru']}
-							on:config={syncTTSConfig}
-						/>
-					</div>
-				</div>
+				<SpConfigurator language={activeLanguage} on:config={syncTTSConfig} />
 			{/if}
 		</div>
 	</header>
@@ -221,7 +207,7 @@
 	<div class="Layout">
 		<div class="Layout-main">
 			<ChatMessages
-				sp={tts}
+				{tts}
 				messages={activeChat?.messages || []}
 				creatingMode={creatingMessageMode}
 				on:create={(e) => messagesCtl.addNewMessage(e.detail.creatingMode)}

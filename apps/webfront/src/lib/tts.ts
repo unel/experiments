@@ -1,7 +1,9 @@
 const synth: SpeechSynthesis = globalThis.speechSynthesis;
 let SPEECH_VOICES: Array<SpeechSynthesisVoice> = [];
-let VOICES_LANGUAGES: Set<string> = new Set([]);
-let SPEECH_VOICES_BY_LANGUAGE: Record<string, Array<SpeechSynthesisVoice>> = {};
+let VOICES_LANGUAGES: Set<string> = new Set();
+let VOICES_LANGUAGE_GROUPS: Set<string> = new Set();
+let SPEECH_VOICES_BY_LANGUAGE: Record<string, Set<SpeechSynthesisVoice>> = {};
+let SPEECH_VOICES_BY_LANGUAGE_GROUP: Record<string, Set<SpeechSynthesisVoice>> = {};
 
 function callAllFns(fns: Array<() => void>): void {
 	for (const fn of fns) {
@@ -15,9 +17,19 @@ function syncSpeechVoices() {
 	for (const voice of SPEECH_VOICES) {
 		const language = voice.lang;
 
+		const [group, shortLanguage] = language
+			.toLocaleLowerCase()
+			.split('-')
+			.map((part) => part.trim());
+
 		VOICES_LANGUAGES.add(language);
-		SPEECH_VOICES_BY_LANGUAGE[language] = SPEECH_VOICES_BY_LANGUAGE[language] || [];
-		SPEECH_VOICES_BY_LANGUAGE[language].push(voice);
+		VOICES_LANGUAGE_GROUPS.add(group);
+
+		SPEECH_VOICES_BY_LANGUAGE[language] ||= new Set();
+		SPEECH_VOICES_BY_LANGUAGE[language].add(voice);
+
+		SPEECH_VOICES_BY_LANGUAGE_GROUP[group] ||= new Set();
+		SPEECH_VOICES_BY_LANGUAGE_GROUP[group].add(voice);
 	}
 }
 
@@ -53,10 +65,12 @@ export function isSpeechSynthesAvailable() {
 export function getConfigurationParameters() {
 	return {
 		language: {
-			values: [...VOICES_LANGUAGES]
+			// values: [...VOICES_LANGUAGES]
+			values: [...VOICES_LANGUAGE_GROUPS]
 		},
 		voice: {
-			values: SPEECH_VOICES_BY_LANGUAGE
+			// values: SPEECH_VOICES_BY_LANGUAGE
+			values: SPEECH_VOICES_BY_LANGUAGE_GROUP
 		},
 		pitch: {
 			min: 0.1,

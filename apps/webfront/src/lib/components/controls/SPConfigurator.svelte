@@ -1,180 +1,186 @@
-<script lang="ts">
-    import { createEventDispatcher } from 'svelte';
+<script lang="ts" context="module">
+	import OptionsIcon from '@components/octicons/GearIcon.svelte';
+	type ExtendedVoice = {
+		id: string;
+		title: string;
+		voice: SpeechSynthesisVoice;
+	};
 
-    import { getConfigurationParameters, isSpeechSynthesAvailable, type SpeachParams } from "$lib/tts";
+	function formatVoiceName(title: string): string {
+		return title
+			.replace(/^microsoft\s+/gi, '')
+			.replace(/\s+online\s+/gi, '')
+			.replace(/\(natural\)/gi, '')
+			.replace(/\s*-\s*.+\s*(\(.+\))/gi, (match, g1) => ` ${g1}`);
+	}
 
+	function formatVoiceId(title: string): string {
+		return btoa(title.toLowerCase().replace(/\s+/g, ''));
+	}
 
-    export let includeGroups: Array<string> | undefined;
-    export let includeLangs: Array<string> | undefined;
+	function strCmp(a: string, b: string): -1 | 0 | 1 {
+		if (a === b) {
+			return 0;
+		}
 
+		return a < b ? -1 : 1;
+	}
 
-    if (isSpeechSynthesAvailable()) {
-        globalThis.speechSynthesis.addEventListener('voiceschanged', () => syncParams());
-    }
+	function mapVoices(voices?: Set<SpeechSynthesisVoice>): ExtendedVoice[] {
+		const evoices = Array.from(
+			voices || new Set<SpeechSynthesisVoice>(),
+			(v: SpeechSynthesisVoice): ExtendedVoice => ({
+				id: formatVoiceId(v.name),
+				title: formatVoiceName(v.name),
+				voice: v
+			})
+		);
 
-    const dispatchEvent = createEventDispatcher<{
-        config: SpeachParams
-    }>();
+		evoices.sort((a, b) => strCmp(a.title, b.title));
 
-    let params = getConfigurationParameters();
-    let languages = params.language.values;
+		return evoices;
+	}
 
-    let langGroupNames: Set<string> = new Set([]);
-    const langGroups: Record<string, Array<{
-        fullName: string,
-        shortName: string,
-        group: string,
-    }>> = {};
-
-
-    function syncParams() {
-        params = getConfigurationParameters();
-        languages = params.language.values;
-
-        for (const language of languages) {
-            const [group, lang] = language.toLocaleLowerCase().split('-').map(part => part.trim());
-
-            if (includeGroups && !includeGroups.includes(group)) {
-                continue;
-            }
-
-            if (includeLangs && !includeLangs.includes(lang)) {
-                continue;
-            }
-
-            langGroups[group] = langGroups[group] || [];
-            langGroups[group].push({
-                fullName: language,
-                group,
-                shortName: lang,
-            });
-
-            langGroupNames.add(group);
-        }
-    }
-
-
-
-    let activeLanguage: string;
-    let activeVoice: SpeechSynthesisVoice;
-    let currentRate = 1;
-    let currentPitch = 1;
-    let currentVolume = 1;
-
-    $: voices = params.voice.values[activeLanguage] || [];
-
-    $: {
-        if (!activeLanguage && languages.length) {
-            activeLanguage = languages[0];
-        }
-    }
-
-    $: {
-        if (voices.length && !activeVoice || voices.indexOf(activeVoice) == -1) {
-            activeVoice = voices[0];
-        }
-    }
-
-    $: {
-        const config: SpeachParams = {
-            rate: currentRate,
-            pitch: currentPitch,
-            volume: currentVolume,
-        };
-
-        if (activeVoice) {
-            config.voice = activeVoice;
-        }
-
-        dispatchEvent('config', config)
-    }
+	function isInacceptableVoiceId(voices: ExtendedVoice[], voiceId?: string) {
+		return !voiceId || !findById(voices, voiceId);
+	}
 </script>
 
-<form>
-    <div class="form-group">
-        <select class="form-select" bind:value={activeLanguage}>
-            {#each Array.from(langGroupNames) as langGroupName}
-                {#if langGroups[langGroupName].length > 1}
-                    <optgroup label={langGroupName}>
-                        {#each langGroups[langGroupName] as language}
-                        <option value={language.fullName}>{language.shortName}</option>
-                        {/each}
-                    </optgroup>
-                {:else}
-                    {#each langGroups[langGroupName] as language}
-                        <option value={language.fullName}>{language.shortName}</option>
-                    {/each}
-                {/if}
-            {/each}
-        </select>
+<script lang="ts">
+	import { createEventDispatcher } from 'svelte';
 
-        <select class="form-select" bind:value={activeVoice}>
-            {#each voices as voice}
-                <option value={voice}>{voice.name.split('-')[0]}</option>
-            {/each}
-        </select>
-    </div>
+	import {
+		getConfigurationParameters,
+		isSpeechSynthesAvailable,
+		type SpeachParams
+	} from '$lib/tts';
+	import { findById } from '$lib/collections';
 
-    <div class="form-group">
-        <div>
-            <label>rate: {currentRate.toFixed(1)}</label>
+	export let language: string;
 
-            <input type="range" name="rate" min={params.rate.min} max={params.rate.max} step={params.rate.step} bind:value={currentRate} list="rate-markers" />
-            <datalist id="rate-markers">
-                <option value={0.1} label="minimum"></option>
-                <option value={0.5} label="half speed"></option>
-                <option value={1} label="norm speed"></option>
-                <option value={1.5} label="norm+"></option>
-                <option value={2} label="twice"></option>
-                <option value={3} label="hurry"></option>
-            </datalist>
-        </div>
+	if (isSpeechSynthesAvailable()) {
+		globalThis.speechSynthesis.addEventListener('voiceschanged', () => syncParams());
+	}
 
-        <div>
-            <label>pitch: {currentPitch.toFixed(1)}</label>
+	const dispatchEvent = createEventDispatcher<{
+		config: SpeachParams;
+	}>();
 
-            <input type="range" name="pitch" min={params.pitch.min} max={params.pitch.max} step={params.pitch.step} bind:value={currentPitch} list="pitch-markers" />
-            <datalist id="pitch-markers">
-                <option value={0.1}></option>
-                <option value={0.5} label="half pitch"></option>
-                <option value={1} label="norm pitch"></option>
-                <option value={1.5}></option>
-                <option value={params.pitch.max} label="max"></option>
-            </datalist>
-        </div>
-    </div>
-</form>
+	let params = getConfigurationParameters();
+	let languages = params.language.values;
 
+	function syncParams() {
+		params = getConfigurationParameters();
+		languages = params.language.values;
+	}
+
+	let activeVoiceId: string;
+	$: voices = mapVoices(params.voice.values[language]);
+	$: activeVoice = findById(voices, activeVoiceId);
+
+	let currentRate = 1;
+	let currentPitch = 1;
+
+	let isOptionsVisible = false;
+	function toggleOptions() {
+		isOptionsVisible = !isOptionsVisible;
+	}
+
+	$: {
+		if (isInacceptableVoiceId(voices, activeVoiceId)) {
+			activeVoiceId = voices[0]?.id;
+		}
+	}
+
+	$: {
+		const config: SpeachParams = { rate: currentRate, pitch: currentPitch };
+
+		if (activeVoice) {
+			config.voice = activeVoice.voice;
+		}
+
+		dispatchEvent('config', config);
+	}
+</script>
+
+<div class="root">
+	<select class="form-select" bind:value={activeVoiceId}>
+		{#each voices as voice}
+			<option value={voice.id}>{voice.title}</option>
+		{/each}
+	</select>
+
+	<button class="btn-octicon" on:click={toggleOptions}><OptionsIcon /></button>
+	{#if isOptionsVisible}
+		<div class="options">
+			<div>
+				<label>rate: {currentRate.toFixed(1)}</label>
+
+				<input
+					type="range"
+					name="rate"
+					min={params.rate.min}
+					max={params.rate.max}
+					step={params.rate.step}
+					bind:value={currentRate}
+					list="rate-markers"
+				/>
+				<datalist id="rate-markers">
+					<option value={0.1} label="minimum" />
+					<option value={0.5} label="half speed" />
+					<option value={1} label="norm speed" />
+					<option value={1.5} label="norm+" />
+					<option value={2} label="twice" />
+					<option value={3} label="hurry" />
+				</datalist>
+			</div>
+
+			<div>
+				<label>pitch: {currentPitch.toFixed(1)}</label>
+
+				<input
+					type="range"
+					name="pitch"
+					min={params.pitch.min}
+					max={params.pitch.max}
+					step={params.pitch.step}
+					bind:value={currentPitch}
+					list="pitch-markers"
+				/>
+				<datalist id="pitch-markers">
+					<option value={0.1} />
+					<option value={0.5} label="half pitch" />
+					<option value={1} label="norm pitch" />
+					<option value={1.5} />
+					<option value={params.pitch.max} label="max" />
+				</datalist>
+			</div>
+		</div>
+	{/if}
+</div>
 
 <style>
-    .params {
-        padding: 8px;
+	.root {
+		position: relative;
+	}
 
-        max-height: 200px;
-        overflow: auto;
-    }
+	.options {
+		position: absolute;
+		background: white;
+		z-index: 10;
+		padding: var(--space);
+		box-shadow: 8px 12px 8px 2px rgba(0, 0, 0, 0.4);
+	}
 
-    form {
-        display: inline-flex;
-        flex-direction: column;
-    }
+	input[type='range'] {
+		width: 100%;
+		margin: 0;
+	}
 
-    .form-group {
-        display: flex;
-        flex-direction: row;
+	datalist {
+	}
 
-        column-gap: var(--space);
-    }
-
-    input[type="range"] {
-        width: 100%;
-        margin: 0;
-    }
-
-    datalist {
-    }
-
-    datalist option {
-        padding: 0;
-    }
+	datalist option {
+		padding: 0;
+	}
 </style>
