@@ -15,10 +15,13 @@
 	import CInput from '@components/CustomInput.svelte';
 	import SpConfigurator from '@components/SPConfigurator.svelte';
 	import ThreadControl from '@components/Thread/ThreadControl.svelte';
+	import AsyncIconButton from '@components/AsyncIconButton.svelte';
 
 	import StopIcon from '@components/octicons/MuteIcon.svelte';
 	import PlayIcon from '@components/octicons/UnmuteIcon.svelte';
 	import RmIcon from '@components/octicons/XIcon.svelte';
+	import AddIcon from '@components/octicons/sm/PlusIcon.svelte';
+	import AiAddIcon from '@components/octicons/sm/HubotIcon.svelte';
 	// ------------------------------------
 
 	// page data (see +page.server.ts@load)
@@ -26,7 +29,10 @@
 	// ------------------------------------
 
 	// page logic
-	const dtFormatter = new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'medium' });
+	const dtFormatter = new Intl.DateTimeFormat('en-GB', {
+		dateStyle: undefined,
+		timeStyle: 'short'
+	});
 	const {
 		isActive: isSPActive,
 		talkingStatus: spTalkingStatus,
@@ -38,8 +44,26 @@
 		addMessage(e.detail.transcript, activeLanguage);
 	}
 
-	function addMessage(text: string, language = activeLanguage) {
-		createMessage({ language, text });
+	function addMessage(text: string, language = activeLanguage, userId = data.user?.id || '') {
+		return createMessage({ language, text, userId });
+	}
+
+	async function addNewMessage() {
+		if (isAiReplyMode) {
+			const systemUsers = new Set(['system', 'assistant', 'user']);
+
+			const messages = (activeChat?.messages || []).map((chatMessage) => ({
+				role: systemUsers.has(chatMessage.userId) ? chatMessage.userId : 'user',
+				content: chatMessage.text
+			}));
+
+			const reply = await api.getChatReply(fetch, { messages });
+			await addMessage(reply, activeLanguage, 'assistant');
+		} else {
+			await addMessage(' ');
+		}
+
+		focusOnLastText();
 	}
 
 	function navigateToChat(chatId: string) {
@@ -116,14 +140,18 @@
 		navigateToChat(result.id);
 	}
 
-	async function createMessage({ language, text }: Record<string, string>) {
+	async function createMessage({
+		language,
+		text,
+		userId = data.user?.id || ''
+	}: Record<string, string>) {
 		if (!activeChatId || !data.user?.id) {
 			return;
 		}
 
 		const result = await api.createMessage(fetch, {
 			chatId: activeChatId,
-			userId: data.user?.id,
+			userId,
 			language,
 			text
 		});
@@ -135,16 +163,18 @@
 		activeChat.messages = activeChat.messages || [];
 		activeChat.messages.push(result);
 		activeChat.messages = activeChat.messages;
+
+		return result;
 	}
 
-	async function saveChatMessageText(chatMessage: ChatMessage) {
-		const { chatId, text, id } = chatMessage || {};
+	async function saveChatMessage(chatMessage: ChatMessage) {
+		const { chatId, text, id, userId } = chatMessage || {};
 
 		if (!id || !chatId) {
 			return;
 		}
 
-		await api.updateMessage(fetch, { messageId: id, chatId, text });
+		await api.updateMessage(fetch, { messageId: id, chatId, text, userId });
 	}
 
 	function speakText(text: string) {
@@ -210,6 +240,49 @@
 		openedThreadId = message.id;
 	}
 
+	let isAiReplyMode = false;
+	function setAiReplyMode(newMode: boolean) {
+		isAiReplyMode = newMode;
+	}
+
+	function processKeyDown(e: KeyboardEvent) {
+		if (e.key === 'Alt') {
+			setAiReplyMode(true);
+			e.preventDefault();
+		}
+	}
+
+	function processKeyUp(e: KeyboardEvent) {
+		if (e.key === 'Alt') {
+			setAiReplyMode(false);
+			e.preventDefault();
+		}
+	}
+
+	function focusOnLastText() {
+		const query = `[data-element="transcript"]:nth-of-type(${
+			activeChat?.messages?.length || 0
+		}) [data-element="transcript.text"] textarea`;
+
+		const element = document.querySelector(query);
+
+		if (element) {
+			(element as HTMLInputElement).focus();
+		}
+	}
+
+	async function onForwardMessages(e: CustomEvent) {
+		const messages = e.detail.messages || [];
+		if (!messages.length) {
+			return;
+		}
+
+		await createChat();
+		for (const message of messages) {
+			await addMessage(message.text, activeLanguage, message.user);
+		}
+	}
+
 	$: currentPageUrl = $page.url;
 	$: activeChatId = currentPageUrl.hash.split(':')[1];
 	$: activeChat = data.chats?.find?.((chat) => chat.id === activeChatId);
@@ -223,7 +296,6 @@
 	}
 
 	function destroy() {
-		console.log('destroying!!!');
 		sp?.destroy();
 		srs?.en.destroy();
 		srs?.ru.destroy();
@@ -232,7 +304,12 @@
 	onDestroy(destroy);
 </script>
 
-<svelte:window on:beforeunload={destroy} />
+<svelte:window
+	on:beforeunload={destroy}
+	on:keydown={processKeyDown}
+	on:keyup={processKeyUp}
+	on:blur={() => setAiReplyMode(false)}
+/>
 
 <main class="MainContent">
 	<header class="Subhead">
@@ -288,10 +365,13 @@
 		<div class="Layout-main">
 			<section class="transcripts">
 				{#each activeChat?.messages || [] as chatMessage, idx}
-					<div class="TimelineItem message-line">
-						{#if openedThreadId === chatMessage.id}
+					<div class="TimelineItem message-line" data-element="transcript">
+						{#if openedThreadId && openedThreadId === chatMessage.id}
 							<div class="thread-box">
-								<ThreadControl thread={THREADS[chatMessage.id].data} />
+								<ThreadControl
+									thread={THREADS[chatMessage.id].data}
+									on:fw_messages={onForwardMessages}
+								/>
 							</div>
 						{/if}
 
@@ -304,17 +384,27 @@
 								{dtFormatter.format(chatMessage.createdAt)}
 							</div>
 
-							<div class="transcript-text">
+							<div class="transcript-user">
+								<CInput
+									bind:value={chatMessage.userId}
+									on:confirmed={() => saveChatMessage(chatMessage)}
+								/>
+							</div>
+
+							<div class="transcript-text" data-element="transcript.text">
 								{#if $isSPActive && $spTalkingStatus.text == chatMessage.text}
-									{@html markWord(
-										chatMessage.text,
-										$spTalkingStatus.wordStartIndex,
-										$spTalkingStatus.wordEndIndex
-									)}
+									<div class="text">
+										{@html markWord(
+											chatMessage.text,
+											$spTalkingStatus.wordStartIndex,
+											$spTalkingStatus.wordEndIndex
+										)}
+									</div>
 								{:else}
 									<CInput
+										multiline
 										bind:value={chatMessage.text}
-										on:confirmed={() => saveChatMessageText(chatMessage)}
+										on:confirmed={() => saveChatMessage(chatMessage)}
 									/>
 								{/if}
 							</div>
@@ -347,7 +437,13 @@
 
 				<div class="TimelineItem">
 					<div class="TimelineItem-badge">
-						<button class="btn" on:click={() => addMessage(' ')}> + </button>
+						<AsyncIconButton class="btn" on:click={() => addNewMessage()}>
+							{#if isAiReplyMode}
+								<AiAddIcon />
+							{:else}
+								<AddIcon />
+							{/if}
+						</AsyncIconButton>
 					</div>
 				</div>
 			</section>
@@ -412,12 +508,32 @@
 		column-gap: var(--space);
 	}
 
+	.transcript-user {
+		min-width: 60px;
+		flex-basis: 60px;
+		flex-shrink: 1;
+	}
+
 	.transcript-text {
 		flex-grow: 1;
 	}
 
+	.transcript-text .text {
+		display: block;
+		box-sizing: border-box;
+
+		white-space: pre-line;
+		padding: 0;
+		margin: 0;
+		max-width: 100%;
+	}
+
 	.transcript-controls {
 		flex-shrink: 1;
+
+		display: flex;
+		flex-direction: row;
+		align-items: center;
 	}
 
 	.chat-item {

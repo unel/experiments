@@ -190,6 +190,19 @@ const api = {
 		{ threadId, nodeId }
 	): Promise<Array<Record<string, unknown>>> => {
 		return fetchJSON(fetchFn, buildGptUrl(`/threads/${threadId}/nodes/${nodeId}/messages`));
+	},
+
+	getChatReply: async (fetchFn: FetchFN, { messages, maxTokens = 500 }): Promise<string> => {
+		const reply = await fetchJSON(fetchFn, buildGptUrl('/t-prompt/raw-chat'), {
+			method: 'POST',
+			headers: defaultHeaders,
+			body: JSON.stringify({
+				max_tokens: maxTokens,
+				messages
+			})
+		});
+
+		return reply.result.content;
 	}
 };
 
