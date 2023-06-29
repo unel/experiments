@@ -1,4 +1,6 @@
-const SpeechRecognition = (globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition);
+import { mkPromise } from '$lib/promise-utils';
+
+const SpeechRecognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
 
 function callAllFns(fns: Array<() => void>): void {
 	for (const fn of fns) {
@@ -7,36 +9,43 @@ function callAllFns(fns: Array<() => void>): void {
 }
 
 export function isSpeechRecognitionAvailable(): boolean {
-	return typeof SpeechRecognition !== "undefined";
+	return typeof SpeechRecognition !== 'undefined';
 }
 
 export type SRStatus = {
-	isActive: boolean,
-	error?: SpeechRecognitionErrorEvent,
+	isActive: boolean;
+	error?: SpeechRecognitionErrorEvent;
 };
 
 export type SRResultItem = {
-	transcript: string,
-	probability?: number,
+	transcript: string;
+	probability?: number;
 };
 
-export class SR {
-	_sr: SpeechRecognition;
+export class STTEngine {
 	isActive: boolean;
+	language: string;
+	defaultLanguage: string;
+
+	_sr: SpeechRecognition;
 	_destructors: Array<() => void>;
 
-	constructor({ language='en', continuous=false } = {}) {
+	constructor({ language = 'en', continuous = false } = {}) {
+		this.defaultLanguage = language;
+		this.language = language;
 		this._sr = new SpeechRecognition();
 		this._sr.lang = language;
 		this._sr.continuous = continuous;
 		this.isActive = false;
 
 		this._destructors = [
-			() => { this._sr.stop(); },
+			() => {
+				this._sr.stop();
+			},
 
 			this.addStatusListener(({ isActive }) => {
 				this.isActive = isActive;
-			}),
+			})
 		];
 	}
 
@@ -44,12 +53,46 @@ export class SR {
 		callAllFns(this._destructors);
 	}
 
-	startListening() {
+	async startListening(language = this._defaultLanguage) {
+		const { promise, resolve } = mkPromise();
+
+		const unlisten = this.addStatusListener(({ isActive }) => {
+			if (isActive) {
+				resolve();
+			}
+			unlisten();
+		});
+
+		this.language = language;
+		this._sr.lang = language;
 		this._sr.start();
+		return promise;
 	}
 
-	stopListening() {
+	async switchLanguage(newLanguage: string) {
+		if (this.language === newLanguage) {
+			return;
+		}
+
+		this.language = this._sr.lang = newLanguage;
+		if (this.isActive) {
+			await this.stopListening();
+			await this.startListening(newLanguage);
+		}
+	}
+
+	async stopListening() {
+		const { promise, resolve } = mkPromise();
+
+		const unlisten = this.addStatusListener(({ isActive }) => {
+			if (!isActive) {
+				resolve();
+			}
+			unlisten();
+		});
+
 		this._sr.stop();
+		return promise;
 	}
 
 	addStatusListener(listener: (statusInfo: SRStatus) => void) {
@@ -64,12 +107,12 @@ export class SR {
 
 			this._addSREventListener('error', (e) => {
 				listener({ isActive: false, error: e });
-			}),
+			})
 		];
 
 		return () => {
 			callAllFns(unlisteners);
-		}
+		};
 	}
 
 	addErrorListener(listener: (e: SpeechRecognitionErrorEvent) => void) {
@@ -82,11 +125,14 @@ export class SR {
 
 	addMessageListener(listener: (data: SRResultItem) => void) {
 		return this.addResultListener((e) => {
-			listener(e.results[e.resultIndex].item(0))
+			listener(e.results[e.resultIndex].item(0));
 		});
 	}
 
-	_addSREventListener<EN extends keyof SpeechRecognitionEventMap>(eventName: EN, listener: (this: SpeechRecognition, ev: SpeechRecognitionEventMap[EN]) => any) {
+	_addSREventListener<EN extends keyof SpeechRecognitionEventMap>(
+		eventName: EN,
+		listener: (this: SpeechRecognition, ev: SpeechRecognitionEventMap[EN]) => any
+	) {
 		this._sr.addEventListener(eventName, listener);
 
 		return () => {
