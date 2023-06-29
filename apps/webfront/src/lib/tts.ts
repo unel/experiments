@@ -11,7 +11,18 @@ function callAllFns(fns: Array<() => void>): void {
 	}
 }
 
+function clearData() {
+	SPEECH_VOICES = [];
+
+	VOICES_LANGUAGES = new Set();
+	VOICES_LANGUAGE_GROUPS = new Set();
+
+	SPEECH_VOICES_BY_LANGUAGE = {};
+	SPEECH_VOICES_BY_LANGUAGE_GROUP = {};
+}
+
 function syncSpeechVoices() {
+	clearData();
 	SPEECH_VOICES = synth?.getVoices() ?? [];
 
 	for (const voice of SPEECH_VOICES) {
