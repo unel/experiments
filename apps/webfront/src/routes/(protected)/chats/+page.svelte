@@ -39,7 +39,7 @@
 
 	import Listener from '@components/controls/Listener.svelte';
 	import CInput from '@components/controls/CustomInput.svelte';
-	import SpConfigurator from '@components/controls/SPConfigurator.svelte';
+	import TTSConfigurator from '@components/controls/TTSConfigurator.svelte';
 
 	import ChatsList from '@components/chat/ChatsList.svelte';
 	import ChatMessages, {
@@ -199,7 +199,7 @@
 			{/if}
 
 			{#if tts}
-				<SpConfigurator language={activeLanguage} on:config={syncTTSConfig} />
+				<TTSConfigurator language={activeLanguage} on:config={syncTTSConfig} />
 			{/if}
 		</div>
 	</header>
