@@ -223,6 +223,35 @@
 	$: activeChatId = currentPageUrl.hash.split(':')[1];
 	$: activeChat = findById(data.chats || [], activeChatId);
 
+	$: {
+		if (activeChatId) {
+			const chatSettings = chatsCtl.loadChatSettings(activeChatId);
+
+			activeLanguage = chatSettings.language;
+			currentMode = chatSettings.createMode;
+			currentSpeakingMode = chatSettings.speakMode;
+			// voiceId = chatSettings.voiceId;
+		}
+	}
+
+	$: {
+		if (activeLanguage && activeChatId) {
+			chatsCtl.updateChatSettings(activeChatId, { language: activeLanguage });
+		}
+	}
+
+	$: {
+		if (currentMode && activeChatId) {
+			chatsCtl.updateChatSettings(activeChatId, { createMode: currentMode });
+		}
+	}
+
+	$: {
+		if (currentSpeakingMode && activeChatId) {
+			chatsCtl.updateChatSettings(activeChatId, { speakMode: currentSpeakingMode });
+		}
+	}
+
 	function destroy() {
 		tts?.destroy();
 		stt?.destroy();
