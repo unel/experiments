@@ -31,6 +31,7 @@ export class STTEngine {
 	_destructors: Array<() => void>;
 
 	constructor({ language = 'en', continuous = false } = {}) {
+		this.defaultContinuous = continuous;
 		this.defaultLanguage = language;
 		this.language = language;
 		this._sr = new SpeechRecognition();
@@ -53,7 +54,7 @@ export class STTEngine {
 		callAllFns(this._destructors);
 	}
 
-	async startListening(language = this._defaultLanguage) {
+	async startListening(language = this.defaultLanguage, continuous = this.defaultContinuous) {
 		const { promise, resolve } = mkPromise();
 
 		const unlisten = this.addStatusListener(({ isActive }) => {
@@ -65,6 +66,7 @@ export class STTEngine {
 
 		this.language = language;
 		this._sr.lang = language;
+		this._sr.continuous = continuous;
 		this._sr.start();
 		return promise;
 	}

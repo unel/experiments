@@ -1,3 +1,7 @@
+<script lang="ts" context="module">
+	export const LISTEN_MODES = ['new', 'put'];
+</script>
+
 <script lang="ts">
 	// imports
 	import { createEventDispatcher } from 'svelte';
@@ -14,30 +18,51 @@
 	// component logic
 	const dispatchEvent = createEventDispatcher<{
 		status: SRStatus;
-		message: SRResultItem;
+		mode_switched: { mode?: string };
+		message: { message: SRResultItem; mode?: string };
 	}>();
 	let isListening = false;
-
-	function startListening() {
-		stt.startListening(language);
-	}
-
-	function stopListening() {
-		stt.stopListening();
-	}
-
-	function toggleListening() {
-		(isListening ? stopListening : startListening)();
-	}
 
 	function onStatusUpdate(status: SRStatus) {
 		isListening = status.isActive;
 
+		if (!isListening) {
+			clearListenMode();
+		}
 		dispatchEvent('status', status);
 	}
 
 	function onMessageRecognised(data: SRResultItem) {
-		dispatchEvent('message', data);
+		dispatchEvent('message', {
+			message: data,
+			mode: currentListenMode
+		});
+	}
+
+	let currentListenMode: string | undefined;
+	async function setLisenMode(newMode: string) {
+		if (!stt) {
+			return;
+		}
+
+		if (currentListenMode == newMode) {
+			return clearListenMode();
+		}
+
+		const continuous = newMode === 'put';
+		if (stt.isActive) {
+			await stt.stopListening();
+		}
+
+		await stt.startListening(language, continuous);
+		currentListenMode = newMode;
+		dispatchEvent('mode_switched', { mode: currentListenMode });
+	}
+
+	function clearListenMode() {
+		currentListenMode = undefined;
+		stt?.stopListening();
+		dispatchEvent('mode_switched', { mode: currentListenMode });
 	}
 
 	$: {
@@ -63,9 +88,28 @@
 	}
 </script>
 
-<button class="btn btn-mr2" on:click={toggleListening} aria-selected={isListening}>
-	{#if isListening}
-		<RecordingIcon />
-	{/if}
-	<span>{isListening ? 'listening..' : 'listen'}</span>
-</button>
+<div class="BtnGroup">
+	<button
+		class="BtnGroup-item btn"
+		class:btn-danger={isListening}
+		title={isListening ? 'stop listening' : ''}
+		aria-selected={!isListening}
+		on:click={() => clearListenMode()}
+	>
+		{#if isListening}
+			<RecordingIcon />
+		{:else}
+			deaf
+		{/if}
+	</button>
+
+	{#each LISTEN_MODES as mode}
+		<button
+			class="BtnGroup-item btn"
+			aria-selected={isListening && mode === currentListenMode}
+			on:click={() => setLisenMode(mode)}
+		>
+			{mode}
+		</button>
+	{/each}
+</div>

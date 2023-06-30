@@ -1,6 +1,9 @@
 <script lang="ts" context="module">
-	import type { ChatMessage } from '$lib/api';
 	import { findById } from '$lib/collections';
+	import type { ChatMessage } from '$lib/api';
+
+	import type { CreatigMode } from '@components/chat/ChatMessages.svelte';
+	import ChatMessages, { focusOnText, CREATING_MODES } from '@components/chat/ChatMessages.svelte';
 
 	type Lang = 'en' | 'ru';
 
@@ -42,14 +45,11 @@
 	import TTSConfigurator from '@components/controls/TTSConfigurator.svelte';
 
 	import ChatsList from '@components/chat/ChatsList.svelte';
-	import ChatMessages, {
-		focusOnText,
-		type CreatigMode
-	} from '@components/chat/ChatMessages.svelte';
 
 	import { createChatControls } from '$lib/chat-page-controls/chat-controls';
 	import { createNavigationControls } from '$lib/chat-page-controls/navigation-controls.js';
 	import { createChatMessagesControls } from '$lib/chat-page-controls/chat-messages-controls.js';
+	import { returnLastFocus } from '@components/chat/ChatMessages.svelte';
 	// ------------------------------------
 
 	// page data (see +page.server.ts@load)
@@ -105,8 +105,36 @@
 		}
 	});
 
-	function updateLog(e: CustomEvent<SRResultItem>) {
-		messagesCtl.addNewMessage('default', { text: e.detail.transcript, language: activeLanguage });
+	function onTTSMessage(e: CustomEvent<{ message: SRResultItem; mode?: string }>) {
+		const text = e.detail.message.transcript;
+		const mode = e.detail.mode;
+
+		if (mode === 'new') {
+			messagesCtl.addNewMessage('default', { text, language: activeLanguage });
+		}
+
+		if (mode === 'put') {
+			const el = document.activeElement;
+			if (el instanceof HTMLTextAreaElement) {
+				const [start, end] = [el.selectionStart || 0, el.selectionEnd || 0];
+
+				el.setRangeText(' ' + text + ' ', start, end, 'select');
+				el.value = el.value.trim();
+				el.dispatchEvent(new Event('input'));
+			}
+		}
+	}
+
+	async function onListenModeSwitched(e: CustomEvent<{ mode?: string }>) {
+		const mode = e.detail.mode;
+
+		if (mode === 'put') {
+			if (activeChat?.messages?.length) {
+				returnLastFocus();
+			} else {
+				await messagesCtl.addNewMessage('default', { text: ' ' });
+			}
+		}
 	}
 
 	function syncTTSConfig(e: CustomEvent<SpeachParams>) {
@@ -114,27 +142,38 @@
 	}
 
 	let activeLanguage: Lang = 'en';
+	let currentMode: CreatigMode = 'default';
+	let currentModeHot: CreatigMode | undefined;
+
 	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
 	const speechSynthesAvailable = isSpeechSynthesAvailable();
 
 	const tts = speechSynthesAvailable ? new TTSEngine({ rate: 1 }) : undefined;
 	const stt = speechRecognitionAvailable ? new STTEngine({ continuous: true }) : undefined;
 
-	let creatingMessageMode: CreatigMode = 'default';
-	function setCreatingMessageMode(newMode: CreatigMode) {
-		creatingMessageMode = newMode;
+	$: creatingMessageMode = currentModeHot ?? currentMode;
+
+	function setMode(newMode: CreatigMode) {
+		currentMode = newMode;
+	}
+
+	function setHotMode(newMode: CreatigMode) {
+		currentModeHot = newMode;
+	}
+	function clearHotMode() {
+		currentModeHot = undefined;
 	}
 
 	function processKeyDown(e: KeyboardEvent) {
 		if (e.key === AI_CREATING_KEY) {
-			setCreatingMessageMode('aireply');
+			setHotMode('aireply');
 			e.preventDefault();
 		}
 	}
 
 	function processKeyUp(e: KeyboardEvent) {
 		if (e.key === AI_CREATING_KEY) {
-			setCreatingMessageMode('default');
+			clearHotMode();
 			e.preventDefault();
 		}
 	}
@@ -162,7 +201,7 @@
 	on:beforeunload={destroy}
 	on:keydown={processKeyDown}
 	on:keyup={processKeyUp}
-	on:blur={() => setCreatingMessageMode('default')}
+	on:blur={() => clearHotMode()}
 />
 
 <main class="MainContent">
@@ -181,6 +220,18 @@
 
 		<div class="Subhead-actions">
 			<div class="BtnGroup">
+				{#each CREATING_MODES as mode}
+					<button
+						class="BtnGroup-item btn"
+						aria-selected={currentMode === mode}
+						on:click={() => setMode(mode)}
+					>
+						{mode}
+					</button>
+				{/each}
+			</div>
+
+			<div class="BtnGroup">
 				{#each AVAILABLE_LANGUAGES as language}
 					<button
 						class="BtnGroup-item btn"
@@ -193,7 +244,12 @@
 			</div>
 
 			{#if stt}
-				<Listener {stt} language={activeLanguage} on:message={updateLog} />
+				<Listener
+					{stt}
+					language={activeLanguage}
+					on:message={onTTSMessage}
+					on:mode_switched={onListenModeSwitched}
+				/>
 			{:else}
 				speech recongition is unavailable =(
 			{/if}

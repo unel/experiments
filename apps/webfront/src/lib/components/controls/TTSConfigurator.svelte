@@ -104,7 +104,7 @@
 </script>
 
 <div class="root">
-	<select class="form-select" bind:value={activeVoiceId}>
+	<select class="form-select voice-selector" bind:value={activeVoiceId}>
 		{#each voices as voice}
 			<option value={voice.id}>{voice.title}</option>
 		{/each}
@@ -162,6 +162,10 @@
 <style>
 	.root {
 		position: relative;
+	}
+
+	.voice-selector {
+		min-width: 208px;
 	}
 
 	.options {
