@@ -1,3 +1,5 @@
+import { mkPromise } from '$lib/promise-utils';
+
 const synth: SpeechSynthesis = globalThis.speechSynthesis;
 let SPEECH_VOICES: Array<SpeechSynthesisVoice> = [];
 let VOICES_LANGUAGES: Set<string> = new Set();
@@ -210,10 +212,21 @@ export class TTSEngine {
 	}
 
 	speak(text: string, speachParams?: SpeachParams) {
+		const { promise, resolve } = mkPromise();
+
 		this._utter.text = text;
 		this._syncUtterParams(speachParams);
 		synth.cancel();
 		synth.speak(this._utter);
+
+		const unlisten = this.addStatusListener(({ isActive }) => {
+			if (!isActive) {
+				unlisten();
+				resolve();
+			}
+		});
+
+		return promise;
 	}
 
 	pause() {

@@ -27,6 +27,7 @@
 
 	const AI_CREATING_KEY = 'Alt';
 	const AVAILABLE_LANGUAGES: Array<Lang> = ['ru', 'en'];
+	const SPEAK_MODES = ['no', 'auto speak'];
 </script>
 
 <script lang="ts">
@@ -85,17 +86,46 @@
 			}
 		}
 	});
+
 	const messagesCtl = createChatMessagesControls({
 		api,
 		fetchFn: fetch,
 		user: data.user,
 		getActiveChat: () => activeChat,
-		notifyUpdate: (type: 'created' | 'updated' | 'removed') => {
+		notifyUpdate: async (type: 'created' | 'updated' | 'removed') => {
 			if (activeChat?.messages) {
 				activeChat.messages = activeChat.messages;
 			}
 
-			if (type === 'created') {
+			if (type === 'created' && activeChat?.messages?.length) {
+				const createdMessage = activeChat.messages.at(-1);
+
+				if (
+					creatingMessageMode === 'aireply' &&
+					currentSpeakingMode !== 'put' &&
+					createdMessage?.userId !== 'assistant'
+				) {
+					if (currentSpeakingMode === 'auto speak' && stt) {
+						if (stt.isActive) {
+							await stt.pauseListening();
+						}
+					}
+
+					return messagesCtl.addNewMessage('aireply');
+				}
+
+				if (currentSpeakingMode === 'auto speak' && createdMessage?.userId === 'assistant') {
+					if (tts) {
+						await tts.speak(createdMessage.text);
+					}
+
+					if (stt?.isPaused) {
+						await stt.resumeListening();
+					}
+
+					return;
+				}
+
 				setTimeout(() => {
 					if (activeChat?.messages?.length) {
 						focusOnText(activeChat.messages.length);
@@ -105,22 +135,25 @@
 		}
 	});
 
-	function onTTSMessage(e: CustomEvent<{ message: SRResultItem; mode?: string }>) {
+	async function onTTSMessage(e: CustomEvent<{ message: SRResultItem; mode?: string }>) {
 		const text = e.detail.message.transcript;
 		const mode = e.detail.mode;
 
 		if (mode === 'new') {
-			messagesCtl.addNewMessage('default', { text, language: activeLanguage });
+			await messagesCtl.addNewMessage('default', { text, language: activeLanguage });
 		}
 
 		if (mode === 'put') {
 			const el = document.activeElement;
+
 			if (el instanceof HTMLTextAreaElement) {
 				const [start, end] = [el.selectionStart || 0, el.selectionEnd || 0];
 
 				el.setRangeText(' ' + text + ' ', start, end, 'select');
 				el.value = el.value.trim();
 				el.dispatchEvent(new Event('input'));
+			} else {
+				await messagesCtl.addNewMessage('default', { text, language: activeLanguage });
 			}
 		}
 	}
@@ -144,6 +177,7 @@
 	let activeLanguage: Lang = 'en';
 	let currentMode: CreatigMode = 'default';
 	let currentModeHot: CreatigMode | undefined;
+	let currentSpeakingMode: string = 'no';
 
 	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
 	const speechSynthesAvailable = isSpeechSynthesAvailable();
@@ -220,6 +254,18 @@
 
 		<div class="Subhead-actions">
 			<div class="BtnGroup">
+				{#each AVAILABLE_LANGUAGES as language}
+					<button
+						class="BtnGroup-item btn"
+						aria-selected={language === activeLanguage}
+						on:click={() => (activeLanguage = language)}
+					>
+						{language}
+					</button>
+				{/each}
+			</div>
+
+			<div class="BtnGroup">
 				{#each CREATING_MODES as mode}
 					<button
 						class="BtnGroup-item btn"
@@ -231,17 +277,19 @@
 				{/each}
 			</div>
 
-			<div class="BtnGroup">
-				{#each AVAILABLE_LANGUAGES as language}
-					<button
-						class="BtnGroup-item btn"
-						aria-selected={language === activeLanguage}
-						on:click={() => (activeLanguage = language)}
-					>
-						{language}
-					</button>
-				{/each}
-			</div>
+			{#if tts}
+				<div class="BtnGroup">
+					{#each SPEAK_MODES as mode}
+						<button
+							class="BtnGroup-item btn"
+							aria-selected={mode === currentSpeakingMode}
+							on:click={() => (currentSpeakingMode = mode)}
+						>
+							{mode}
+						</button>
+					{/each}
+				</div>
+			{/if}
 
 			{#if stt}
 				<Listener

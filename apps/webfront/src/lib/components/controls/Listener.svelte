@@ -8,6 +8,7 @@
 
 	import type { STTEngine, SRStatus, SRResultItem } from '$lib/stt';
 	import RecordingIcon from '@components/octicons/sm/DotIcon.svelte';
+	import PauseIcon from '@components/octicons/sm/ColumnsIcon.svelte';
 	// ----------------------------------------------
 
 	// props
@@ -22,11 +23,13 @@
 		message: { message: SRResultItem; mode?: string };
 	}>();
 	let isListening = false;
+	let isPaused = false;
 
 	function onStatusUpdate(status: SRStatus) {
 		isListening = status.isActive;
+		isPaused = status.isPaused;
 
-		if (!isListening) {
+		if (!isListening && !isPaused) {
 			clearListenMode();
 		}
 		dispatchEvent('status', status);
@@ -49,12 +52,11 @@
 			return clearListenMode();
 		}
 
-		const continuous = newMode === 'put';
 		if (stt.isActive) {
 			await stt.stopListening();
 		}
 
-		await stt.startListening(language, continuous);
+		await stt.startListening(language);
 		currentListenMode = newMode;
 		dispatchEvent('mode_switched', { mode: currentListenMode });
 	}
@@ -98,6 +100,8 @@
 	>
 		{#if isListening}
 			<RecordingIcon />
+		{:else if isPaused}
+			<PauseIcon />
 		{:else}
 			deaf
 		{/if}
@@ -106,7 +110,7 @@
 	{#each LISTEN_MODES as mode}
 		<button
 			class="BtnGroup-item btn"
-			aria-selected={isListening && mode === currentListenMode}
+			aria-selected={(isListening || isPaused) && mode === currentListenMode}
 			on:click={() => setLisenMode(mode)}
 		>
 			{mode}
