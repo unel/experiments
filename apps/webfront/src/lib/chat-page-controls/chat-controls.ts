@@ -5,7 +5,9 @@ export function createChatControls({ api, fetchFn, chats, user, notifyUpdate }) 
 		language: 'en',
 		createMode: 'aireply',
 		speakMode: 'no',
-		voiceId: 'bWljcm9zb2Z0Z3V5b25saW5lKG5hdHVyYWwpLWVuZ2xpc2godW5pdGVkc3RhdGVzKQ=='
+		voiceId: 'bWljcm9zb2Z0Z3V5b25saW5lKG5hdHVyYWwpLWVuZ2xpc2godW5pdGVkc3RhdGVzKQ==',
+		voicePitch: 1,
+		voiceRate: 1
 	});
 	function genChatKey(chatId, suffix = 'settings') {
 		return `e.chats.${chatId}.${suffix}`;
@@ -13,6 +15,9 @@ export function createChatControls({ api, fetchFn, chats, user, notifyUpdate }) 
 
 	function loadChatSettings(id) {
 		const key = genChatKey(id, 'settings');
+		if (typeof globalThis.localStorage === undefined) {
+			return DEFAULT_SETTINGS;
+		}
 
 		try {
 			const data = localStorage.getItem(key);
@@ -24,8 +29,11 @@ export function createChatControls({ api, fetchFn, chats, user, notifyUpdate }) 
 	}
 
 	function writeChatSettings(id: string, settings = {}) {
-		const key = genChatKey(id, 'settings');
+		if (typeof globalThis.localStorage === undefined) {
+			return;
+		}
 
+		const key = genChatKey(id, 'settings');
 		localStorage.setItem(key, JSON.stringify(settings));
 	}
 
@@ -80,6 +88,7 @@ export function createChatControls({ api, fetchFn, chats, user, notifyUpdate }) 
 		updateChat,
 		removeChat,
 
+		isSettingsAvailable: typeof globalThis.localStorage !== 'undefined',
 		loadChatSettings,
 		updateChatSettings
 	};

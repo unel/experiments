@@ -1,11 +1,20 @@
 import { mkPromise } from '$lib/promise-utils';
 
+export type ExtendedVoice = {
+	id: string;
+	title: string;
+	voice: SpeechSynthesisVoice;
+};
+
 const synth: SpeechSynthesis = globalThis.speechSynthesis;
-let SPEECH_VOICES: Array<SpeechSynthesisVoice> = [];
-let VOICES_LANGUAGES: Set<string> = new Set();
-let VOICES_LANGUAGE_GROUPS: Set<string> = new Set();
-let SPEECH_VOICES_BY_LANGUAGE: Record<string, Set<SpeechSynthesisVoice>> = {};
-let SPEECH_VOICES_BY_LANGUAGE_GROUP: Record<string, Set<SpeechSynthesisVoice>> = {};
+
+export let VOICES_LANGUAGES: Set<string> = new Set();
+export let VOICES_LANGUAGE_GROUPS: Set<string> = new Set();
+
+export let SPEECH_VOICES: Array<ExtendedVoice> = [];
+export let SPEECH_VOICES_BY_ID: Record<string, ExtendedVoice> = {};
+export let SPEECH_VOICES_BY_LANGUAGE: Record<string, Set<ExtendedVoice>> = {};
+export let SPEECH_VOICES_BY_LANGUAGE_GROUP: Record<string, Set<ExtendedVoice>> = {};
 
 function callAllFns(fns: Array<() => void>): void {
 	for (const fn of fns) {
@@ -15,6 +24,7 @@ function callAllFns(fns: Array<() => void>): void {
 
 function clearData() {
 	SPEECH_VOICES = [];
+	SPEECH_VOICES_BY_ID = {};
 
 	VOICES_LANGUAGES = new Set();
 	VOICES_LANGUAGE_GROUPS = new Set();
@@ -29,6 +39,7 @@ function syncSpeechVoices() {
 
 	for (const voice of SPEECH_VOICES) {
 		const language = voice.lang;
+		const evoice = mapVoice(voice);
 
 		const [group, shortLanguage] = language
 			.toLocaleLowerCase()
@@ -38,12 +49,34 @@ function syncSpeechVoices() {
 		VOICES_LANGUAGES.add(language);
 		VOICES_LANGUAGE_GROUPS.add(group);
 
+		SPEECH_VOICES_BY_ID[evoice.id] = evoice;
+
 		SPEECH_VOICES_BY_LANGUAGE[language] ||= new Set();
-		SPEECH_VOICES_BY_LANGUAGE[language].add(voice);
+		SPEECH_VOICES_BY_LANGUAGE[language].add(evoice);
 
 		SPEECH_VOICES_BY_LANGUAGE_GROUP[group] ||= new Set();
-		SPEECH_VOICES_BY_LANGUAGE_GROUP[group].add(voice);
+		SPEECH_VOICES_BY_LANGUAGE_GROUP[group].add(evoice);
 	}
+}
+
+function formatVoiceName(title: string): string {
+	return title
+		.replace(/^microsoft\s+/gi, '')
+		.replace(/\s+online\s+/gi, '')
+		.replace(/\(natural\)/gi, '')
+		.replace(/\s*-\s*.+\s*(\(.+\))/gi, (match, g1) => ` ${g1}`);
+}
+
+function formatVoiceId(title: string): string {
+	return btoa(title.toLowerCase().replace(/\s+/g, ''));
+}
+
+function mapVoice(v: SpeechSynthesisVoice): ExtendedVoice {
+	return {
+		id: formatVoiceId(v.name),
+		title: formatVoiceName(v.name),
+		voice: v
+	};
 }
 
 if (isSpeechSynthesAvailable()) {
@@ -57,7 +90,9 @@ type SPStatus = {
 };
 
 type SpeachParamName = 'voice' | 'pitch' | 'rate' | 'volume' | 'lang';
-export type SpeachParams = Partial<Pick<SpeechSynthesisUtterance, SpeachParamName>>;
+export type SpeachParams = Partial<Pick<SpeechSynthesisUtterance, SpeachParamName>> & {
+	voiceId: string;
+};
 
 export type SpeakingInfo = {
 	elapsedTime?: number;
@@ -140,7 +175,7 @@ export class TTSEngine {
 		callAllFns(this._destructors);
 	}
 
-	applyConfig(speachParams: SpeachParams) {
+	applyConfig(speachParams: Partial<SpeachParams>) {
 		Object.assign(this._defaultSpeachParams, speachParams);
 	}
 
@@ -246,6 +281,11 @@ export class TTSEngine {
 			...this._defaultSpeachParams,
 			...speachParams
 		};
+
+		if (finalSpeachParams.voiceId) {
+			finalSpeachParams.voice = SPEECH_VOICES_BY_ID[finalSpeachParams.voiceId]?.voice;
+			delete finalSpeachParams.voiceId;
+		}
 
 		for (const [name, value] of Object.entries(finalSpeachParams)) {
 			// @ts-ignore

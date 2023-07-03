@@ -5,7 +5,7 @@
 	import type { CreatigMode } from '@components/chat/ChatMessages.svelte';
 	import ChatMessages, { focusOnText, CREATING_MODES } from '@components/chat/ChatMessages.svelte';
 
-	type Lang = 'en' | 'ru';
+	type Lang = 'fr' | 'en' | 'ru';
 
 	function threadMessageToChatMessageBody(
 		threadMessage: Record<string, string>,
@@ -26,7 +26,7 @@
 	}
 
 	const AI_CREATING_KEY = 'Alt';
-	const AVAILABLE_LANGUAGES: Array<Lang> = ['ru', 'en'];
+	const AVAILABLE_LANGUAGES: Array<Lang> = ['ru', 'en', 'fr'];
 	const SPEAK_MODES = ['no', 'auto speak'];
 </script>
 
@@ -56,6 +56,22 @@
 	// page data (see +page.server.ts@load)
 	export let data;
 	// ------------------------------------
+
+	let currentVoiceId: string;
+	let currentVoicePitch = 1;
+	let currentVoiceRate = 1;
+
+	$: {
+		tts?.applyConfig({ pitch: currentVoicePitch });
+	}
+
+	$: {
+		tts?.applyConfig({ rate: currentVoiceRate });
+	}
+
+	$: {
+		tts?.applyConfig({ voiceId: currentVoiceId });
+	}
 
 	// page logic
 	const navCtl = createNavigationControls({ goto, getPageUrl: () => $page.url });
@@ -171,7 +187,7 @@
 	}
 
 	function syncTTSConfig(e: CustomEvent<SpeachParams>) {
-		tts?.applyConfig(e.detail);
+		// tts?.applyConfig(e.detail);
 	}
 
 	let activeLanguage: Lang = 'en';
@@ -230,25 +246,45 @@
 			activeLanguage = chatSettings.language;
 			currentMode = chatSettings.createMode;
 			currentSpeakingMode = chatSettings.speakMode;
-			// voiceId = chatSettings.voiceId;
+			currentVoiceId = chatSettings.voiceId;
+			currentVoicePitch = chatSettings.voicePitch ?? 1;
+			currentVoiceRate = chatSettings.voiceRate ?? 1;
 		}
 	}
 
 	$: {
-		if (activeLanguage && activeChatId) {
+		if (chatsCtl.isSettingsAvailable && activeLanguage && activeChatId) {
 			chatsCtl.updateChatSettings(activeChatId, { language: activeLanguage });
 		}
 	}
 
 	$: {
-		if (currentMode && activeChatId) {
+		if (chatsCtl.isSettingsAvailable && currentMode && activeChatId) {
 			chatsCtl.updateChatSettings(activeChatId, { createMode: currentMode });
 		}
 	}
 
 	$: {
-		if (currentSpeakingMode && activeChatId) {
+		if (chatsCtl.isSettingsAvailable && currentSpeakingMode && activeChatId) {
 			chatsCtl.updateChatSettings(activeChatId, { speakMode: currentSpeakingMode });
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && currentVoiceId) {
+			chatsCtl.updateChatSettings(activeChatId, { voiceId: currentVoiceId });
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && currentVoicePitch !== undefined) {
+			chatsCtl.updateChatSettings(activeChatId, { voicePitch: currentVoicePitch });
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && currentVoiceRate !== undefined) {
+			chatsCtl.updateChatSettings(activeChatId, { voiceRate: currentVoiceRate });
 		}
 	}
 
@@ -332,7 +368,12 @@
 			{/if}
 
 			{#if tts}
-				<TTSConfigurator language={activeLanguage} on:config={syncTTSConfig} />
+				<TTSConfigurator
+					language={activeLanguage}
+					bind:voiceId={currentVoiceId}
+					bind:pitch={currentVoicePitch}
+					bind:rate={currentVoiceRate}
+				/>
 			{/if}
 		</div>
 	</header>
