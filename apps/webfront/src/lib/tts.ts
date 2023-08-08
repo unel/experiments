@@ -91,7 +91,7 @@ type SPStatus = {
 
 type SpeachParamName = 'voice' | 'pitch' | 'rate' | 'volume' | 'lang';
 export type SpeachParams = Partial<Pick<SpeechSynthesisUtterance, SpeachParamName>> & {
-	voiceId: string;
+	voiceId?: string;
 };
 
 export type SpeakingInfo = {
