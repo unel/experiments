@@ -54,6 +54,7 @@
 		on:keypress={processKeyPress}
 		on:blur={confirmInput}
 		on:input={syncScrollHeight}
+		on:focus
 	/>
 {:else}
 	<input
@@ -63,6 +64,7 @@
 		bind:this={input}
 		on:keypress={processKeyPress}
 		on:blur={confirmInput}
+		on:focus
 	/>
 {/if}
 

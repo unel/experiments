@@ -28,7 +28,7 @@
 			#{idx}
 			{chat.title}
 
-			<CButton actionString="remove" on:confirmed={() => removeChat(chat.id)}>remove</CButton>
+			<CButton on:confirmed={() => removeChat(chat.id)}>remove</CButton>
 		</a>
 	{/each}
 </nav>

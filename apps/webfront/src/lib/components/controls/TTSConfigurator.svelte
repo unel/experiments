@@ -1,22 +1,6 @@
 <script lang="ts" context="module">
 	import OptionsIcon from '@components/octicons/GearIcon.svelte';
-	type ExtendedVoice = {
-		id: string;
-		title: string;
-		voice: SpeechSynthesisVoice;
-	};
-
-	function formatVoiceName(title: string): string {
-		return title
-			.replace(/^microsoft\s+/gi, '')
-			.replace(/\s+online\s+/gi, '')
-			.replace(/\(natural\)/gi, '')
-			.replace(/\s*-\s*.+\s*(\(.+\))/gi, (match, g1) => ` ${g1}`);
-	}
-
-	function formatVoiceId(title: string): string {
-		return btoa(title.toLowerCase().replace(/\s+/g, ''));
-	}
+	import type { ExtendedVoice } from '$lib/tts';
 
 	function strCmp(a: string, b: string): -1 | 0 | 1 {
 		if (a === b) {
@@ -26,15 +10,8 @@
 		return a < b ? -1 : 1;
 	}
 
-	function mapVoices(voices?: Set<SpeechSynthesisVoice>): ExtendedVoice[] {
-		const evoices = Array.from(
-			voices || new Set<SpeechSynthesisVoice>(),
-			(v: SpeechSynthesisVoice): ExtendedVoice => ({
-				id: formatVoiceId(v.name),
-				title: formatVoiceName(v.name),
-				voice: v
-			})
-		);
+	function sortVoices(voices?: Set<ExtendedVoice>): ExtendedVoice[] {
+		const evoices = Array.from(voices || new Set<ExtendedVoice>());
 
 		evoices.sort((a, b) => strCmp(a.title, b.title));
 
@@ -57,6 +34,11 @@
 	import { findById } from '$lib/collections';
 
 	export let language: string;
+	export let voiceId: string;
+	export let pitch: number = 1;
+	export let rate: number = 1;
+
+	// export let config: SpeachParams = {};
 
 	if (isSpeechSynthesAvailable()) {
 		globalThis.speechSynthesis.addEventListener('voiceschanged', () => syncParams());
@@ -74,12 +56,7 @@
 		languages = params.language.values;
 	}
 
-	let activeVoiceId: string;
-	$: voices = mapVoices(params.voice.values[language]);
-	$: activeVoice = findById(voices, activeVoiceId);
-
-	let currentRate = 1;
-	let currentPitch = 1;
+	$: voices = sortVoices(params.voice.values[language]);
 
 	let isOptionsVisible = false;
 	function toggleOptions() {
@@ -87,24 +64,14 @@
 	}
 
 	$: {
-		if (isInacceptableVoiceId(voices, activeVoiceId)) {
-			activeVoiceId = voices[0]?.id;
+		if (isInacceptableVoiceId(voices, voiceId)) {
+			voiceId = voices[0]?.id;
 		}
-	}
-
-	$: {
-		const config: SpeachParams = { rate: currentRate, pitch: currentPitch };
-
-		if (activeVoice) {
-			config.voice = activeVoice.voice;
-		}
-
-		dispatchEvent('config', config);
 	}
 </script>
 
 <div class="root">
-	<select class="form-select" bind:value={activeVoiceId}>
+	<select class="form-select voice-selector" bind:value={voiceId}>
 		{#each voices as voice}
 			<option value={voice.id}>{voice.title}</option>
 		{/each}
@@ -114,7 +81,7 @@
 	{#if isOptionsVisible}
 		<div class="options">
 			<div>
-				<label>rate: {currentRate.toFixed(1)}</label>
+				<label>rate: {rate.toFixed(1)}</label>
 
 				<input
 					type="range"
@@ -122,7 +89,7 @@
 					min={params.rate.min}
 					max={params.rate.max}
 					step={params.rate.step}
-					bind:value={currentRate}
+					bind:value={rate}
 					list="rate-markers"
 				/>
 				<datalist id="rate-markers">
@@ -136,7 +103,7 @@
 			</div>
 
 			<div>
-				<label>pitch: {currentPitch.toFixed(1)}</label>
+				<label>pitch: {pitch.toFixed(1)}</label>
 
 				<input
 					type="range"
@@ -144,7 +111,7 @@
 					min={params.pitch.min}
 					max={params.pitch.max}
 					step={params.pitch.step}
-					bind:value={currentPitch}
+					bind:value={pitch}
 					list="pitch-markers"
 				/>
 				<datalist id="pitch-markers">
@@ -162,6 +129,10 @@
 <style>
 	.root {
 		position: relative;
+	}
+
+	.voice-selector {
+		min-width: 208px;
 	}
 
 	.options {

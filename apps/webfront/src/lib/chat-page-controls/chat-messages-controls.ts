@@ -18,7 +18,11 @@ export function createChatMessagesControls({ getActiveChat, api, fetchFn, user, 
 			}));
 
 			const reply = await api.getChatReply(fetchFn, { messages });
-			return createMessage({ language, text: reply, userId: 'assistant' });
+
+			const aiMessage = await createMessage({ language, text: reply, userId: 'assistant' });
+			// const userMessage = await createMessage({ language, text: ' ', userId });
+
+			return aiMessage;
 		}
 	}
 

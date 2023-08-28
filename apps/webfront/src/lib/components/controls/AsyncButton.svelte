@@ -17,7 +17,7 @@
 
 	$: props = {
 		...$$props,
-		disabled: isAwaiting
+		disabled: $$props.disabled || isAwaiting
 	};
 </script>
 

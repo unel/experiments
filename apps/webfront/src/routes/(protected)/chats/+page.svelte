@@ -1,8 +1,11 @@
 <script lang="ts" context="module">
-	import type { ChatMessage } from '$lib/api';
 	import { findById } from '$lib/collections';
+	import type { ChatMessage } from '$lib/api';
 
-	type Lang = 'en' | 'ru';
+	import type { CreatigMode } from '@components/chat/ChatMessages.svelte';
+	import ChatMessages, { focusOnText, CREATING_MODES } from '@components/chat/ChatMessages.svelte';
+
+	type Lang = 'fr' | 'en' | 'ru';
 
 	function threadMessageToChatMessageBody(
 		threadMessage: Record<string, string>,
@@ -23,7 +26,8 @@
 	}
 
 	const AI_CREATING_KEY = 'Alt';
-	const AVAILABLE_LANGUAGES: Array<Lang> = ['ru', 'en'];
+	const AVAILABLE_LANGUAGES: Array<Lang> = ['ru', 'en', 'fr'];
+	const SPEAK_MODES = ['no', 'auto speak'];
 </script>
 
 <script lang="ts">
@@ -42,19 +46,32 @@
 	import TTSConfigurator from '@components/controls/TTSConfigurator.svelte';
 
 	import ChatsList from '@components/chat/ChatsList.svelte';
-	import ChatMessages, {
-		focusOnText,
-		type CreatigMode
-	} from '@components/chat/ChatMessages.svelte';
 
 	import { createChatControls } from '$lib/chat-page-controls/chat-controls';
 	import { createNavigationControls } from '$lib/chat-page-controls/navigation-controls.js';
 	import { createChatMessagesControls } from '$lib/chat-page-controls/chat-messages-controls.js';
+	import { returnLastFocus } from '@components/chat/ChatMessages.svelte';
 	// ------------------------------------
 
 	// page data (see +page.server.ts@load)
 	export let data;
 	// ------------------------------------
+
+	let currentVoiceId: string;
+	let currentVoicePitch = 1;
+	let currentVoiceRate = 1;
+
+	$: {
+		tts?.applyConfig({ pitch: currentVoicePitch });
+	}
+
+	$: {
+		tts?.applyConfig({ rate: currentVoiceRate });
+	}
+
+	$: {
+		tts?.applyConfig({ voiceId: currentVoiceId });
+	}
 
 	// page logic
 	const navCtl = createNavigationControls({ goto, getPageUrl: () => $page.url });
@@ -85,17 +102,46 @@
 			}
 		}
 	});
+
 	const messagesCtl = createChatMessagesControls({
 		api,
 		fetchFn: fetch,
 		user: data.user,
 		getActiveChat: () => activeChat,
-		notifyUpdate: (type: 'created' | 'updated' | 'removed') => {
+		notifyUpdate: async (type: 'created' | 'updated' | 'removed') => {
 			if (activeChat?.messages) {
 				activeChat.messages = activeChat.messages;
 			}
 
-			if (type === 'created') {
+			if (type === 'created' && activeChat?.messages?.length) {
+				const createdMessage = activeChat.messages.at(-1);
+
+				if (
+					creatingMessageMode === 'aireply' &&
+					currentSpeakingMode !== 'put' &&
+					createdMessage?.userId !== 'assistant'
+				) {
+					if (currentSpeakingMode === 'auto speak' && stt) {
+						if (stt.isActive) {
+							await stt.pauseListening();
+						}
+					}
+
+					return messagesCtl.addNewMessage('aireply');
+				}
+
+				if (currentSpeakingMode === 'auto speak' && createdMessage?.userId === 'assistant') {
+					if (tts) {
+						await tts.speak(createdMessage.text);
+					}
+
+					if (stt?.isPaused) {
+						await stt.resumeListening();
+					}
+
+					return;
+				}
+
 				setTimeout(() => {
 					if (activeChat?.messages?.length) {
 						focusOnText(activeChat.messages.length);
@@ -105,36 +151,79 @@
 		}
 	});
 
-	function updateLog(e: CustomEvent<SRResultItem>) {
-		messagesCtl.addNewMessage('default', { text: e.detail.transcript, language: activeLanguage });
+	async function onTTSMessage(e: CustomEvent<{ message: SRResultItem; mode?: string }>) {
+		const text = e.detail.message.transcript;
+		const mode = e.detail.mode;
+
+		if (mode === 'new') {
+			await messagesCtl.addNewMessage('default', { text, language: activeLanguage });
+		}
+
+		if (mode === 'put') {
+			const el = document.activeElement;
+
+			if (el instanceof HTMLTextAreaElement) {
+				const [start, end] = [el.selectionStart || 0, el.selectionEnd || 0];
+
+				el.setRangeText(' ' + text + ' ', start, end, 'select');
+				el.value = el.value.trim();
+				el.dispatchEvent(new Event('input'));
+			} else {
+				await messagesCtl.addNewMessage('default', { text, language: activeLanguage });
+			}
+		}
+	}
+
+	async function onListenModeSwitched(e: CustomEvent<{ mode?: string }>) {
+		const mode = e.detail.mode;
+
+		if (mode === 'put') {
+			if (activeChat?.messages?.length) {
+				returnLastFocus();
+			} else {
+				await messagesCtl.addNewMessage('default', { text: ' ' });
+			}
+		}
 	}
 
 	function syncTTSConfig(e: CustomEvent<SpeachParams>) {
-		tts?.applyConfig(e.detail);
+		// tts?.applyConfig(e.detail);
 	}
 
 	let activeLanguage: Lang = 'en';
+	let currentMode: CreatigMode = 'default';
+	let currentModeHot: CreatigMode | undefined;
+	let currentSpeakingMode: string = 'no';
+
 	const speechRecognitionAvailable = isSpeechRecognitionAvailable();
 	const speechSynthesAvailable = isSpeechSynthesAvailable();
 
 	const tts = speechSynthesAvailable ? new TTSEngine({ rate: 1 }) : undefined;
 	const stt = speechRecognitionAvailable ? new STTEngine({ continuous: true }) : undefined;
 
-	let creatingMessageMode: CreatigMode = 'default';
-	function setCreatingMessageMode(newMode: CreatigMode) {
-		creatingMessageMode = newMode;
+	$: creatingMessageMode = currentModeHot ?? currentMode;
+
+	function setMode(newMode: CreatigMode) {
+		currentMode = newMode;
+	}
+
+	function setHotMode(newMode: CreatigMode) {
+		currentModeHot = newMode;
+	}
+	function clearHotMode() {
+		currentModeHot = undefined;
 	}
 
 	function processKeyDown(e: KeyboardEvent) {
 		if (e.key === AI_CREATING_KEY) {
-			setCreatingMessageMode('aireply');
+			setHotMode('aireply');
 			e.preventDefault();
 		}
 	}
 
 	function processKeyUp(e: KeyboardEvent) {
 		if (e.key === AI_CREATING_KEY) {
-			setCreatingMessageMode('default');
+			clearHotMode();
 			e.preventDefault();
 		}
 	}
@@ -150,6 +239,55 @@
 	$: activeChatId = currentPageUrl.hash.split(':')[1];
 	$: activeChat = findById(data.chats || [], activeChatId);
 
+	$: {
+		if (activeChatId) {
+			const chatSettings = chatsCtl.loadChatSettings(activeChatId);
+
+			activeLanguage = chatSettings.language;
+			currentMode = chatSettings.createMode;
+			currentSpeakingMode = chatSettings.speakMode;
+			currentVoiceId = chatSettings.voiceId;
+			currentVoicePitch = chatSettings.voicePitch ?? 1;
+			currentVoiceRate = chatSettings.voiceRate ?? 1;
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && activeLanguage && activeChatId) {
+			chatsCtl.updateChatSettings(activeChatId, { language: activeLanguage });
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && currentMode && activeChatId) {
+			chatsCtl.updateChatSettings(activeChatId, { createMode: currentMode });
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && currentSpeakingMode && activeChatId) {
+			chatsCtl.updateChatSettings(activeChatId, { speakMode: currentSpeakingMode });
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && currentVoiceId) {
+			chatsCtl.updateChatSettings(activeChatId, { voiceId: currentVoiceId });
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && currentVoicePitch !== undefined) {
+			chatsCtl.updateChatSettings(activeChatId, { voicePitch: currentVoicePitch });
+		}
+	}
+
+	$: {
+		if (chatsCtl.isSettingsAvailable && currentVoiceRate !== undefined) {
+			chatsCtl.updateChatSettings(activeChatId, { voiceRate: currentVoiceRate });
+		}
+	}
+
 	function destroy() {
 		tts?.destroy();
 		stt?.destroy();
@@ -162,7 +300,7 @@
 	on:beforeunload={destroy}
 	on:keydown={processKeyDown}
 	on:keyup={processKeyUp}
-	on:blur={() => setCreatingMessageMode('default')}
+	on:blur={() => clearHotMode()}
 />
 
 <main class="MainContent">
@@ -192,14 +330,50 @@
 				{/each}
 			</div>
 
+			<div class="BtnGroup">
+				{#each CREATING_MODES as mode}
+					<button
+						class="BtnGroup-item btn"
+						aria-selected={currentMode === mode}
+						on:click={() => setMode(mode)}
+					>
+						{mode}
+					</button>
+				{/each}
+			</div>
+
+			{#if tts}
+				<div class="BtnGroup">
+					{#each SPEAK_MODES as mode}
+						<button
+							class="BtnGroup-item btn"
+							aria-selected={mode === currentSpeakingMode}
+							on:click={() => (currentSpeakingMode = mode)}
+						>
+							{mode}
+						</button>
+					{/each}
+				</div>
+			{/if}
+
 			{#if stt}
-				<Listener {stt} language={activeLanguage} on:message={updateLog} />
+				<Listener
+					{stt}
+					language={activeLanguage}
+					on:message={onTTSMessage}
+					on:mode_switched={onListenModeSwitched}
+				/>
 			{:else}
 				speech recongition is unavailable =(
 			{/if}
 
 			{#if tts}
-				<TTSConfigurator language={activeLanguage} on:config={syncTTSConfig} />
+				<TTSConfigurator
+					language={activeLanguage}
+					bind:voiceId={currentVoiceId}
+					bind:pitch={currentVoicePitch}
+					bind:rate={currentVoiceRate}
+				/>
 			{/if}
 		</div>
 	</header>

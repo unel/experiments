@@ -1,4 +1,5 @@
 import { mkPromise } from '$lib/promise-utils';
+import { delay } from '$lib/time-utils';
 
 const SpeechRecognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
 
@@ -14,6 +15,7 @@ export function isSpeechRecognitionAvailable(): boolean {
 
 export type SRStatus = {
 	isActive: boolean;
+	isPaused: boolean;
 	error?: SpeechRecognitionErrorEvent;
 };
 
@@ -23,6 +25,7 @@ export type SRResultItem = {
 };
 
 export class STTEngine {
+	isPaused: boolean;
 	isActive: boolean;
 	language: string;
 	defaultLanguage: string;
@@ -31,6 +34,7 @@ export class STTEngine {
 	_destructors: Array<() => void>;
 
 	constructor({ language = 'en', continuous = false } = {}) {
+		this.defaultContinuous = continuous;
 		this.defaultLanguage = language;
 		this.language = language;
 		this._sr = new SpeechRecognition();
@@ -43,7 +47,7 @@ export class STTEngine {
 				this._sr.stop();
 			},
 
-			this.addStatusListener(({ isActive }) => {
+			this.addStatusListener(async ({ isActive }) => {
 				this.isActive = isActive;
 			})
 		];
@@ -53,7 +57,19 @@ export class STTEngine {
 		callAllFns(this._destructors);
 	}
 
-	async startListening(language = this._defaultLanguage) {
+	async pauseListening() {
+		this._pausedArgs = [this._sr.lang, this._sr.continuous];
+
+		return this.stopListening({ isPaused: true });
+	}
+
+	async resumeListening() {
+		this.isPaused = false;
+		return this.startListening(...this._pausedArgs);
+	}
+
+	async startListening(language = this.defaultLanguage, continuous = this.defaultContinuous) {
+		this.isPaused = false;
 		const { promise, resolve } = mkPromise();
 
 		const unlisten = this.addStatusListener(({ isActive }) => {
@@ -65,6 +81,7 @@ export class STTEngine {
 
 		this.language = language;
 		this._sr.lang = language;
+		this._sr.continuous = continuous;
 		this._sr.start();
 		return promise;
 	}
@@ -81,7 +98,12 @@ export class STTEngine {
 		}
 	}
 
-	async stopListening() {
+	async stopListening({ isPaused = false } = {}) {
+		this.isPaused = isPaused;
+		if (!isPaused) {
+			delete this._pausedArgs;
+		}
+
 		const { promise, resolve } = mkPromise();
 
 		const unlisten = this.addStatusListener(({ isActive }) => {
@@ -98,15 +120,15 @@ export class STTEngine {
 	addStatusListener(listener: (statusInfo: SRStatus) => void) {
 		const unlisteners = [
 			this._addSREventListener('start', () => {
-				listener({ isActive: true });
+				listener({ isActive: true, isPaused: this.isPaused });
 			}),
 
 			this._addSREventListener('end', () => {
-				listener({ isActive: false });
+				listener({ isActive: false, isPaused: this.isPaused });
 			}),
 
-			this._addSREventListener('error', (e) => {
-				listener({ isActive: false, error: e });
+			this._addSREventListener('error', async (event) => {
+				listener({ isActive: false, error: event, isPaused: this.isPaused });
 			})
 		];
 

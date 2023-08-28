@@ -3,9 +3,7 @@
 	import { createEventDispatcher } from 'svelte';
 	// ----------------------------------------------
 
-
 	// props
-	export let actionString = 'action';
 	// ----------------------------------------------
 
 	type State = 'pending' | 'confirmation';
@@ -13,8 +11,8 @@
 
 	// component logic
 	const dispatchEvent = createEventDispatcher<{
-		confirmed: void,
-		cancelled: void,
+		confirmed: void;
+		cancelled: void;
 	}>();
 
 	function cancelConfirmation() {
@@ -29,22 +27,20 @@
 </script>
 
 {#if state === 'pending'}
-	<button class='btn btn-sm btn-danger' on:click|preventDefault={() => state = 'confirmation'}>
-		{actionString}
+	<button class="btn btn-sm btn-danger" on:click|preventDefault={() => (state = 'confirmation')}>
+		<slot>action</slot>
 	</button>
 {:else}
 	<span>
 		<!-- <span class='Label'>{confirmationString}</span> -->
-		<span class='BtnGroup'>
-			<button class='BtnGroup-item btn btn-sm' on:click|preventDefault={cancelConfirmation}>
+		<span class="BtnGroup">
+			<button class="BtnGroup-item btn btn-sm" on:click|preventDefault={cancelConfirmation}>
 				n
 			</button>
 
-			<button class='BtnGroup-item btn btn-sm btn-danger' on:click|preventDefault={confirmAction}>
+			<button class="BtnGroup-item btn btn-sm btn-danger" on:click|preventDefault={confirmAction}>
 				y
 			</button>
 		</span>
 	</span>
-
-
 {/if}

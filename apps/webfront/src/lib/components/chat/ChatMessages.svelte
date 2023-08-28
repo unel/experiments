@@ -29,7 +29,23 @@
 		}
 	}
 
-	export type CreatigMode = 'aireply' | 'default';
+	let lastFocusedInput: HTMLInputElement | HTMLTextAreaElement;
+	function onInputFocused(e: FocusEvent) {
+		const target = e.target;
+
+		if ((target && target instanceof HTMLInputElement) || target instanceof HTMLTextAreaElement) {
+			lastFocusedInput = target;
+		}
+	}
+
+	export function returnLastFocus() {
+		if (lastFocusedInput) {
+			lastFocusedInput.focus();
+		}
+	}
+
+	export type CreatigMode = 'aireply' | 'autoaireply' | 'default';
+	export const CREATING_MODES: Array<CreatigMode> = ['aireply', 'default'];
 </script>
 
 <script lang="ts">
@@ -60,23 +76,28 @@
 	// -- endof props
 
 	// -- events
+	const dispatchAwaitEvent = createAwaitingEventDispatcher();
 	const dispatchEvent = createEventDispatcher<{
 		save: { message: ChatMessage };
 		remove: { id: string };
-		create: { creatingMode: CreatigMode };
 		fw_thread_messages: { messages: Array<Record<string, any>> };
 	}>();
-
-	const dispatchAwaitEvent = createAwaitingEventDispatcher();
 
 	function saveChatMessage(message: ChatMessage) {
 		dispatchEvent('save', { message });
 	}
 
+	$: possibleToAiReply =
+		messages.some((m) => m.userId !== 'assistant') && messages.at(-1)?.userId !== 'assistant';
+	$: possibleToUserReply = Boolean((messages.at(-1)?.text || '').trim() || !messages.length);
+	$: realCreatingMode = creatingMode === 'aireply' && !possibleToAiReply ? 'default' : creatingMode;
+
+	$: canCreate = realCreatingMode === 'default' ? possibleToUserReply : possibleToAiReply;
+
 	function createMessage() {
 		return dispatchAwaitEvent(
 			new CustomEvent<{ creatingMode: CreatigMode }>('create', {
-				detail: { creatingMode }
+				detail: { creatingMode: realCreatingMode }
 			})
 		);
 	}
@@ -173,6 +194,7 @@
 					<CInput
 						bind:value={chatMessage.userId}
 						on:confirmed={() => saveChatMessage(chatMessage)}
+						on:focus={onInputFocused}
 					/>
 				</div>
 
@@ -190,6 +212,7 @@
 							multiline
 							bind:value={chatMessage.text}
 							on:confirmed={() => saveChatMessage(chatMessage)}
+							on:focus={onInputFocused}
 						/>
 					{/if}
 				</div>
@@ -222,8 +245,8 @@
 
 	<div class="TimelineItem">
 		<div class="TimelineItem-badge">
-			<AsyncIconButton class="btn" on:click={() => createMessage()}>
-				{#if creatingMode === 'aireply'}
+			<AsyncIconButton class="btn" disabled={!canCreate} on:click={() => createMessage()}>
+				{#if realCreatingMode === 'aireply'}
 					<AiAddIcon />
 				{:else}
 					<AddIcon />
