@@ -1,14 +1,14 @@
 version: "3.9"
 services:
   dispatcher:
-    image: 'nginx:1.23.4-alpine'
+    image: "nginx:1.23.4-alpine"
 
     depends_on:
       - webfront
       - chat-api
       - mongo-admin
 
-    command: [nginx-debug, '-g', 'daemon off;']
+    command: [nginx-debug, "-g", "daemon off;"]
     working_dir: /app
     volumes:
       - ${APPS_DIR}/dispatcher/config/templates:/etc/nginx/templates
@@ -35,15 +35,18 @@ services:
       - MONGO_ADMIN_PORT=${MONGO_ADMIN_PORT}
       - MONGO_ADMIN_BASEPATH=${MONGO_ADMIN_BASEPATH}
 
+      - SYNCTHING_ADMIN_BASEPATH=${SYNCTHING_ADMIN_BASEPATH}
+      - SYNCTHING_ADMIN_PORT=${SYNCTHING_ADMIN_PORT}
+
     networks:
       - dispatcher
 
     ports:
-      - '443:443'
-      - '444:444'
+      - "443:443"
+      - "444:444"
 
   webfront:
-    build: './images/nodeapp'
+    build: "./images/nodeapp"
 
     depends_on:
       mongo-server:
@@ -75,7 +78,7 @@ services:
       - node-mongo
 
   gpt-api:
-    build: './images/nodeapp'
+    build: "./images/nodeapp"
 
     depends_on:
       mongo-server:
@@ -97,7 +100,7 @@ services:
       - node-mongo
 
   chat-api:
-    build: './images/nodeapp'
+    build: "./images/nodeapp"
 
     depends_on:
       mongo-server:
@@ -118,7 +121,7 @@ services:
       - node-mongo
 
   mongo-server:
-    image: 'mongo:6.0.5'
+    image: "mongo:4.4.8"
 
     entrypoint: docker-entrypoint.sh mongod --replSet rs0 --keyFile=/data/keyfiles/mongokey --port=${MONGO_PORT}
 
@@ -135,14 +138,14 @@ services:
       - node-mongo
 
     healthcheck:
-      test: mongosh --port ${MONGO_PORT} --quiet --eval 'db.runCommand("ping").ok'
+      test: mongo --port ${MONGO_PORT} --quiet --eval 'db.runCommand("ping").ok'
       interval: 10s
       timeout: 2s
       retries: 5
       start_period: 0s
 
   mongo-admin:
-    image: 'mongo-express:1.0.0-alpha.4'
+    image: "mongo-express:1.0.0-alpha.4"
 
     depends_on:
       mongo-server:

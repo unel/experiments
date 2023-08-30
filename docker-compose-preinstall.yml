@@ -1,21 +1,21 @@
 version: "3.9"
 services:
   install-webfront-deps:
-    build: './images/nodeapp'
+    build: "./images/nodeapp"
     entrypoint: npm ci
     working_dir: /app
     volumes:
       - ${APPS_DIR}/webfront:/app
 
   install-chat-api-deps:
-    build: './images/nodeapp'
+    build: "./images/nodeapp"
     entrypoint: npm ci
     working_dir: /app
     volumes:
       - ${APPS_DIR}/chatapi:/app
 
   install-gpt-api-deps:
-    build: './images/nodeapp'
+    build: "./images/nodeapp"
     entrypoint: npm ci
     working_dir: /app
     volumes:
