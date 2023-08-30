@@ -1,6 +1,6 @@
 ---
 project_name: 'e1'
-secrets_dir: "~/.ansible/inventory/secrets/{{ project_name }}"
+secrets_dir: "~/.ansible/secrets/{{ project_name }}"
 project_root: "{{ projects_work_dir }}/{{ project_name }}"
 compose_dir: "{{ project_root }}/experiments"
 run_dir: "{{ project_root }}/run"
