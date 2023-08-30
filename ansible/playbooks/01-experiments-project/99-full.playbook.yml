@@ -1,10 +1,12 @@
 ---
-
 - name: Deploy structure
-  ansible.builtin.import_playbook: '01-deploy-experiments-structure.playbook.yml'
+  ansible.builtin.import_playbook: "01-deploy-experiments-structure.playbook.yml"
 
 - name: Install dependencies
-  ansible.builtin.import_playbook: '02-install-dependencies.playbook.yml'
+  ansible.builtin.import_playbook: "02-install-dependencies.playbook.yml"
+
+- name: Fill secrets
+  ansible.builtin.import_playbook: "02-put-secrets-into-apps.playbook.yml"
 
 - name: Run containers
-  ansible.builtin.import_playbook: '03-run-containers.playbook.yml'
+  ansible.builtin.import_playbook: "03-run-containers.playbook.yml"
