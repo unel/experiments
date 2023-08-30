@@ -1,5 +1,4 @@
 ---
-
 - name: Recreate file structure
   hosts: dev_server
   remote_user: root
@@ -12,7 +11,7 @@
       ansible.builtin.file:
         path: "{{ project_root }}/{{ item }}"
         state: "directory"
-        mode: '775'
+        mode: "775"
       with_items:
         - "run/"
         - "backups/mongo"
@@ -22,7 +21,6 @@
         - "keyfiles/dispatcher/dh"
         - "keyfiles/dispatcher/ssl/certs"
         - "keyfiles/dispatcher/ssl/private"
-
 
     - name: Clone a git repo with project
       become: true
@@ -35,43 +33,72 @@
     - name: Fill root secrets
       become: true
       ansible.builtin.template:
-        src: "secrets/envs/root.env.template"
+        src: "{{ secrets_dir }}/envs/root.env.template"
         dest: "{{ project_root }}/experiments/.env"
-        mode: '400'
+        mode: "400"
 
     - name: Fill secrets (env files)
       become: true
       ansible.builtin.copy:
         src: "{{ item.from }}"
         dest: "{{ item.to }}"
-        mode: '400'
+        mode: "400"
       with_items:
-        - { from: "secrets/envs/webfront.env", to: "{{ project_root }}/experiments/apps/webfront/.env" }
-        - { from: "secrets/envs/chatapi.env", to: "{{ project_root }}/experiments/apps/chatapi/.env" }
-        - { from: "secrets/envs/gptapi.env", to: "{{ project_root }}/experiments/apps/gptapi/.env" }
-        - { from: "secrets/envs/tg.env", to: "{{ project_root }}/experiments/apps/tg/.env" }
-        - { from: "secrets/envs/openai.env", to: "{{ project_root }}/experiments/apps/openai/.env" }
+        - {
+            from: "{{ secrets_dir }}/envs/webfront.env",
+            to: "{{ project_root }}/experiments/apps/webfront/.env",
+          }
+        - {
+            from: "{{ secrets_dir }}/envs/chatapi.env",
+            to: "{{ project_root }}/experiments/apps/chatapi/.env",
+          }
+        - {
+            from: "{{ secrets_dir }}/envs/gptapi.env",
+            to: "{{ project_root }}/experiments/apps/gptapi/.env",
+          }
+        - {
+            from: "{{ secrets_dir }}/envs/tg.env",
+            to: "{{ project_root }}/experiments/apps/tg/.env",
+          }
+        - {
+            from: "{{ secrets_dir }}/envs/openai.env",
+            to: "{{ project_root }}/experiments/apps/openai/.env",
+          }
 
     - name: Fill secrets (key files)
       become: true
       ansible.builtin.copy:
         src: "{{ item.from }}"
         dest: "{{ item.to }}"
-        mode: '400'
+        mode: "400"
       with_items:
-        - { from: "secrets/keyfiles/mongo-key", to: "{{ project_root }}/keyfiles/mongo/mongokey" }
-        - { from: "secrets/keyfiles/mongo-connection-config.yaml", to: "{{ project_root }}/keyfiles/mongo/config.yaml" }
-        - { from: "secrets/keyfiles/dispatcher-selfsigned.crt", to: "{{ project_root }}/keyfiles/dispatcher/ssl/certs/nginx-selfsigned.crt" }
-        - { from: "secrets/keyfiles/dispatcher-selfsigned.key", to: "{{ project_root }}/keyfiles/dispatcher/ssl/private/nginx-selfsigned.key" }
-        - { from: "secrets/keyfiles/dispatcher-dhparam.pem", to: "{{ project_root }}/keyfiles/dispatcher/dh/nginx-dhparam.pem" }
-
+        - {
+            from: "{{ secrets_dir }}/keyfiles/mongo-key",
+            to: "{{ project_root }}/keyfiles/mongo/mongokey",
+          }
+        - {
+            from: "{{ secrets_dir }}/keyfiles/mongo-connection-config.yaml",
+            to: "{{ project_root }}/keyfiles/mongo/config.yaml",
+          }
+        - {
+            from: "{{ secrets_dir }}/keyfiles/dispatcher-selfsigned.crt",
+            to: "{{ project_root }}/keyfiles/dispatcher/ssl/certs/nginx-selfsigned.crt",
+          }
+        - {
+            from: "{{ secrets_dir }}/keyfiles/dispatcher-selfsigned.key",
+            to: "{{ project_root }}/keyfiles/dispatcher/ssl/private/nginx-selfsigned.key",
+          }
+        - {
+            from: "{{ secrets_dir }}/keyfiles/dispatcher-dhparam.pem",
+            to: "{{ project_root }}/keyfiles/dispatcher/dh/nginx-dhparam.pem",
+          }
 
     - name: Change mode for some keys
       become: true
       ansible.builtin.file:
         path: "{{ project_root }}/keyfiles/mongo/mongokey"
         owner: 999
-        mode: '400'
+        mode: "400"
 
     - name: Update mongo version in compose file
       become: true
