@@ -34,9 +34,9 @@ server {
         proxy_set_header Connection "upgrade";
     }
 
-    location ${SYNCTHING_ADMIN_BASEPATH}/ {
-        return 301 $scheme://${SYNCTHING_ADMIN_HOST}:${SYNCTHING_ADMIN_PORT}$request_uri;
-    }
+    rewrite ^${SYNCTHING_ADMIN_BASEPATH}/(.*)$ https://${SYNCTHING_ADMIN_HOST}:${SYNCTHING_ADMIN_PORT}/$1 last;
+    rewrite ^${SYNCTHING_ADMIN_BASEPATH}$ https://${SYNCTHING_ADMIN_HOST}:${SYNCTHING_ADMIN_PORT} last;
+
 
     location ${CHAT_API_BASEPATH}/ {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
